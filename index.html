@@ -121,6 +121,10 @@
     .pdf-workspace-head h2 { margin:0 0 5px; font-size:1.7rem; }
     .pdf-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
     .pdf-upload-row input[type=file] { width:auto; margin:0; }
+    .pdf-status-pill { font:600 11px Arial,sans-serif; letter-spacing:.03em; color:var(--muted); }
+    .pdf-status-pill.uploading { color:var(--gold); }
+    .pdf-status-pill.ready { color:var(--forest); }
+    .pdf-status-pill.error { color:var(--coral); }
     .pdf-split { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; }
     .pdf-pane { background:var(--surface); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); overflow:hidden; }
     .pdf-toolbar { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; font-size:.82rem; flex-wrap:wrap; }
@@ -235,7 +239,7 @@
     <p>Paste a DOI or DOI-link, or choose a PDF, and Paper Compass will fill what it can.</p>
     <form id="newPaperForm">
       <label>DOI or paper link<input id="modalSource" placeholder="10.1234/example or https://doi.org/…"></label>
-      <label>PDF <span style="text-transform:none;letter-spacing:0">(optional)</span><input id="modalPdf" type="file" accept="application/pdf"></label>
+      <label>PDF <span style="text-transform:none;letter-spacing:0">(optional — will be uploaded to your account when you start reading)</span><input id="modalPdf" type="file" accept="application/pdf"></label>
       <div class="lookup-block">
         <button id="lookupPaper" class="lookup" type="button">Look up paper details</button>
         <p id="lookupStatus" class="lookup-status" aria-live="polite"></p>
@@ -279,10 +283,11 @@
 
     <section class="pdf-workspace">
       <div class="pdf-workspace-head">
-        <div><h2>Source PDF &amp; annotations</h2><p style="margin:0;color:var(--muted)">Upload the paper, select text as you read, and link each note to a step in your workspace.</p></div>
+        <div><h2>Source PDF &amp; annotations</h2><p style="margin:0;color:var(--muted)">Upload the paper, select text as you read, and link each note to a step in your workspace. Your PDF and annotations are both saved to your account.</p></div>
         <div class="pdf-upload-row">
           <input id="workspacePdf" type="file" accept="application/pdf">
           <span id="pdfFileName" style="color:var(--muted);font:600 12px Arial,sans-serif"></span>
+          <span id="pdfStatusPill" class="pdf-status-pill"></span>
         </div>
       </div>
       <div class="pdf-split">
@@ -319,7 +324,7 @@
           <div id="annotationList" class="annotation-list"><p class="annotation-empty">Annotations you save from the PDF will appear here, linked to the step or table you chose.</p></div>
         </div>
       </div>
-      <p class="pdf-note">The PDF itself is not uploaded to the cloud — only your annotations and notes sync with this paper. Re-attach the PDF on each device if needed.</p>
+      <p class="pdf-note" id="pdfNote">Your PDF is stored privately in your account's cloud storage — reopening this paper on any device will reload it automatically.</p>
     </section>
 
     <section class="phase">
@@ -368,7 +373,7 @@
     <p id="saved" class="saved" aria-live="polite"></p>
   </main>
 
- <script>
+  <script>
     // ————————————————————————————————————————————————————————————
     // CLOUD DATABASE CONFIG — fill these in from your Supabase project
     // (Project Settings → API → Project URL / anon public key)
@@ -382,7 +387,7 @@
     let library={papers:{},activeId:null}, data=blankData(), searchCache=[];
     let supaClient=null, currentUser=null, newPaperReturn=null;
     let pendingPdfFile=null; // PDF chosen in the "new paper" form, uploaded once the paper row exists
-    let hasBooted=false; // guards against Supabase's tab-refocus auth events forcing navigation
+    let openPaperToken=0; // guards against a slow PDF load from paper A finishing after paper B was opened
     document.querySelectorAll('.phase')[2].after(document.querySelector('.workspace'));
 
     // ---- theme ----
@@ -487,7 +492,6 @@
     const allViews=['configErrorView','authView','homeView','libraryView','exploreView','methodView','newPaperView','workspaceView'];
     function hideAllViews(){ allViews.forEach(id=>{const el=document.getElementById(id); if(el) el.hidden=true;}); }
     function setNav(view){[['navHome','homeView'],['navExplore','exploreView'],['navMethod','methodView']].forEach(([n,v])=>$('#'+n).classList.toggle('active',v===view));}
-    function currentVisibleView(){ return allViews.find(id=>{const el=document.getElementById(id); return el && !el.hidden;}); }
 
     function relative(ts){const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000);return m<1?'just now':m<60?`${m}m ago`:m<1440?`${Math.floor(m/60)}h ago`:new Date(ts).toLocaleDateString();}
     function renderLibrary(){
@@ -524,6 +528,8 @@
     async function openPaper(id){
       if(!requireAuth('workspaceView')) return;
       const p=library.papers[id]; if(!p) return;
+      const myToken=++openPaperToken; // invalidates any in-flight PDF load from a previously opened paper
+
       library.activeId=id; data={...blankData(),...p.data};
       data.history=(data.history||[]).map(x=>typeof x==='string'?{at:Date.now(),label:x}:x);
       data.annotations=data.annotations||[];
@@ -535,7 +541,7 @@
       resetPdfViewer();
       hideAllViews(); $('#workspaceView').hidden=false; setNav('');
       update(); render();
-      if(p.pdfPath){ await loadPdfFromStorage(p.pdfPath); }
+      if(p.pdfPath){ await loadPdfFromStorage(p.pdfPath, myToken); }
     }
 
     // ---- new paper (real page, not a popup) ----
@@ -619,7 +625,6 @@
       for(let i=1;i<=pagesToScan;i++){
         const page=await doc.getPage(i);
         const content=await page.getTextContent();
-        // group text items roughly by vertical position to approximate lines
         let lastY=null, currentLine='';
         content.items.forEach(item=>{
           const y=item.transform[5];
@@ -636,8 +641,6 @@
       return {fullText, lines, info:meta&&meta.info};
     }
     function guessTitleFromLines(lines){
-      // Heuristic: skip short/boilerplate lines, prefer the first sufficiently long line
-      // near the top that isn't all-caps journal boilerplate or a running header.
       const skipPatterns=/^(doi|issn|volume|vol\.|www\.|http|copyright|©|received|accepted|published|journal of|proceedings of)/i;
       for(const line of lines.slice(0,25)){
         const clean=line.trim();
@@ -649,8 +652,6 @@
       return '';
     }
     function guessAuthorsFromLines(lines,titleLine){
-      // Heuristic: look at the few lines right after the guessed title for a
-      // comma/and-separated list of capitalized names.
       const titleIdx=lines.findIndex(l=>l===titleLine);
       const searchFrom=titleIdx>=0?titleIdx+1:0;
       const authorPattern=/^([A-Z][a-zà-ÿ'-]+(\s[A-Z]\.?)*\s[A-Z][a-zà-ÿ'-]+)(\s*,\s*|\s+and\s+|\s*&\s*)/;
@@ -673,7 +674,6 @@
       const status=$('#lookupStatus'), source=$('#modalSource').value.trim(), pdf=$('#modalPdf').files[0];
       status.textContent='Looking up metadata…';
       try{
-        // 1) Try a DOI typed/pasted directly into the source field first — fastest, most reliable path.
         let doi=doiFrom(source);
         if(doi){
           await fillFromDoi(doi);
@@ -685,7 +685,6 @@
           throw new Error('Add a DOI, DOI-link, or choose a PDF to look up.');
         }
 
-        // 2) Properly extract text from the PDF via pdf.js (not a raw-byte regex).
         status.textContent='Reading the PDF for a DOI and title/author details…';
         const {fullText, lines, info}=await extractPdfTextAndMeta(pdf);
 
@@ -696,7 +695,6 @@
           return;
         }
 
-        // 3) No DOI anywhere — fall back to the PDF's own document metadata (Title/Author), if present.
         const pdfInfoTitle=info&&info.Title&&info.Title.trim();
         const pdfInfoAuthor=info&&info.Author&&info.Author.trim();
 
@@ -740,7 +738,7 @@
     } 
 
     // ---- PDF.js viewer + text-selection annotations + cloud storage ---- 
-    let pdfDoc=null, pdfCurrentPage=1, pdfScale=1.15, pdfRenderingLock=false, pdfPendingSelection=null, pdfObjectUrl=null;
+    let pdfDoc=null, pdfCurrentPage=1, pdfScale=1.15, pdfRenderingLock=false, pdfPendingSelection=null;
     if(window['pdfjsLib']) pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
 
     function setPdfStatus(text,cls){
@@ -750,7 +748,6 @@
     }
     function resetPdfViewer(){
       pdfDoc=null; pdfCurrentPage=1; pdfScale=1.15; pdfPendingSelection=null;
-      if(pdfObjectUrl){ URL.revokeObjectURL(pdfObjectUrl); pdfObjectUrl=null; }
       $('#pdfFileName').textContent='';
       $('#workspacePdf').value='';
       $('#pdfCanvasWrap').innerHTML='<p class="pdf-empty">No PDF loaded yet. Upload one above to read alongside your notes — select any text to turn it into a linked annotation.</p>';
@@ -759,37 +756,44 @@
       setPdfStatus('');
       hideSelectionBar();
     }
-    async function loadPdfFromArrayBuffer(buf,label){
+    async function loadPdfFromArrayBuffer(buf,label,token){
       $('#pdfCanvasWrap').innerHTML='<p class="pdf-empty">Loading PDF…</p>';
       try{
-        pdfDoc=await pdfjsLib.getDocument({data:buf}).promise;
+        const loaded=await pdfjsLib.getDocument({data:buf}).promise;
+        if(token!==undefined && token!==openPaperToken) return; // a newer paper was opened meanwhile — discard
+        pdfDoc=loaded;
         pdfCurrentPage=1;
         await renderPdfPage();
         if(label) $('#pdfFileName').textContent=label;
       }catch(err){
+        if(token!==undefined && token!==openPaperToken) return;
         $('#pdfCanvasWrap').innerHTML=`<p class="pdf-empty">Could not open this PDF: ${esc(err.message)}</p>`;
         setPdfStatus('Could not open PDF','error');
       }
     }
-    async function loadPdfFromStorage(path){
+    async function loadPdfFromStorage(path,token){
       setPdfStatus('Loading saved PDF…','uploading');
       try{
         const {data:blob,error}=await supaClient.storage.from(PDF_BUCKET).download(path);
         if(error) throw error;
+        if(token!==undefined && token!==openPaperToken) return; // stale — a different paper is now open
         const buf=await blob.arrayBuffer();
-        await loadPdfFromArrayBuffer(buf, path.split('/').pop().replace(/^\d+-/,''));
+        await loadPdfFromArrayBuffer(buf, path.split('/').pop().replace(/^\d+-/,''), token);
+        if(token!==undefined && token!==openPaperToken) return;
         setPdfStatus('Saved PDF loaded','ready');
       }catch(err){
+        if(token!==undefined && token!==openPaperToken) return;
         setPdfStatus('Could not load saved PDF: '+err.message,'error');
       }
     }
     async function loadPdfFile(file){
       if(!library.activeId){ alert('Open a paper before uploading a PDF.'); return; }
+      const myToken=openPaperToken; // uploads within the currently-open paper only
       $('#pdfFileName').textContent=file.name;
       const buf=await file.arrayBuffer();
-      await loadPdfFromArrayBuffer(buf.slice(0), file.name);
+      await loadPdfFromArrayBuffer(buf.slice(0), file.name, myToken);
+      if(myToken!==openPaperToken) return;
 
-      // upload / replace in cloud storage
       const paper=library.papers[library.activeId];
       setPdfStatus('Uploading to your account…','uploading');
       try{
@@ -797,11 +801,13 @@
           await supaClient.storage.from(PDF_BUCKET).remove([paper.pdfPath]).catch(()=>{});
         }
         const path=await uploadPdfForPaper(library.activeId,file);
+        if(myToken!==openPaperToken) return;
         paper.pdfPath=path;
         const {error}=await supaClient.from('papers').update({pdf_path:path,updated_at:new Date().toISOString()}).eq('id',library.activeId);
         if(error) throw error;
         setPdfStatus('PDF saved to your account','ready');
       }catch(err){
+        if(myToken!==openPaperToken) return;
         setPdfStatus('PDF loaded here, but upload failed: '+err.message,'error');
       }
     }
@@ -950,35 +956,48 @@
       if(error){ console.error(error); return; } 
       rows.forEach(r=>{ library.papers[r.id]={id:r.id,title:r.title,citation:r.citation,authors:r.authors||'',journal:r.journal||'',year:r.year||'',pdfPath:r.pdf_path||null,createdAt:new Date(r.created_at).getTime(),updatedAt:new Date(r.updated_at).getTime(),data:{...blankData(),...r.data}}; }); 
     } 
-    // Only navigate/reset UI on the very first successful sign-in per page load.
-    // Supabase re-fires onAuthStateChange (e.g. TOKEN_REFRESHED) whenever the tab
-    // regains focus/visibility — without this guard that was forcing the app back
-    // to the home view and wiping whatever screen/progress you were on.
-    async function handleSession(session, {isInitial=false}={}){ 
-      if(session&&session.user){ 
-        const isNewSignIn=!currentUser;
-        currentUser=session.user; 
-        $('#userBadge').style.display='flex'; $('#userEmail').textContent=currentUser.email; 
-        $('#signInBtn').hidden=true; 
-        if(isInitial || isNewSignIn){
-          await loadLibrary();
-          showHome();
-        }
-        // subsequent token refreshes / focus events: keep whatever view is open, do nothing else
-      } else { 
-        currentUser=null; library={papers:{},activeId:null}; data=blankData(); 
-        $('#userBadge').style.display='none'; 
-        $('#signInBtn').hidden=false; 
-        showAuth('Sign in to access your saved papers and deep-reading workspace.'); 
-      } 
-    } 
+    // Applies a session to app state WITHOUT touching navigation. Safe to call
+    // as often as Supabase likes (token refresh, tab refocus, etc.) — it only
+    // updates who the current user is, never redirects or reloads the library.
+    function applySessionUser(session){
+      if(session&&session.user){
+        currentUser=session.user;
+        $('#userBadge').style.display='flex'; $('#userEmail').textContent=currentUser.email;
+        $('#signInBtn').hidden=true;
+      } else {
+        currentUser=null;
+        $('#userBadge').style.display='none';
+        $('#signInBtn').hidden=false;
+      }
+    }
     async function boot(){ 
       hideAllViews(); 
       if(!configured()){ $('#configErrorView').hidden=false; return; } 
       supaClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); 
-      supaClient.auth.onAuthStateChange((_event,session)=>{
-        setTimeout(()=>handleSession(session,{isInitial:!hasBooted}),0);
+
+      // Only react to genuine sign-in / sign-out transitions. Supabase also fires
+      // this listener on TOKEN_REFRESHED and on tab refocus/visibility checks —
+      // those must NOT reset navigation or reload the library, or any in-progress
+      // click/network activity (e.g. opening a paper, loading its PDF) can get
+      // yanked back to the home view mid-action.
+      supaClient.auth.onAuthStateChange((event,session)=>{
+        if(event==='SIGNED_IN'){
+          const wasSignedOut=!currentUser;
+          applySessionUser(session);
+          if(wasSignedOut){
+            setTimeout(async()=>{ await loadLibrary(); showHome(); },0);
+          }
+        } else if(event==='SIGNED_OUT'){
+          applySessionUser(null);
+          library={papers:{},activeId:null}; data=blankData();
+          setTimeout(()=>showAuth('Sign in to access your saved papers and deep-reading workspace.'),0);
+        } else {
+          // TOKEN_REFRESHED, USER_UPDATED, INITIAL_SESSION fired again, etc.
+          // Just keep the user info current; never navigate or reload data.
+          applySessionUser(session);
+        }
       }); 
+
       const hash=window.location.hash; 
       const params=new URLSearchParams(hash.startsWith('#')?hash.slice(1):hash); 
       const authError=params.get('error_description')||params.get('error'); 
@@ -986,9 +1005,15 @@
         showAuth(`Sign-in link error: ${decodeURIComponent(authError.replace(/\+/g,' '))}`); 
         window.history.replaceState({},document.title,window.location.pathname+window.location.search); 
       } 
+
       const {data:{session}}=await supaClient.auth.getSession(); 
-      await handleSession(session,{isInitial:true}); 
-      hasBooted=true;
+      applySessionUser(session);
+      if(currentUser){
+        await loadLibrary();
+        showHome();
+      } else if(!authError){
+        showAuth('Sign in to access your saved papers and deep-reading workspace.');
+      }
     } 
 
     // ---- wiring ---- 
@@ -1050,6 +1075,6 @@
     }; 
 
     boot(); 
-  </script>
+  </script> 
 </body> 
 </html>
