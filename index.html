@@ -162,8 +162,47 @@
     .annotation-empty { padding:24px 14px; color:var(--muted); font-size:.88rem; font-family:Arial,sans-serif; }
     .pdf-note { margin:10px 0 0; color:var(--muted); font-size:.85rem; }
 
-    @media (max-width:700px) { .grid { grid-template-columns:1fr; } .panel.wide { grid-column:auto; } .add-row { grid-template-columns:1fr 1fr; } .passport dl { grid-template-columns:1fr; gap:2px; } .toolbar { grid-template-columns:1fr; } .meta-row, .meta-row.three { grid-template-columns:1fr; } .pdf-split { grid-template-columns:1fr; } .pdf-canvas-wrap { max-height:420px; } .annotation-list { max-height:300px; } }
-    @media (max-width:700px) { .shell,.library,.home { padding:20px 15px 44px; }.app-nav { padding:15px 15px 0; flex-wrap:wrap; }.nav-links { gap:10px; } header, .footer,.library-head { display:block; } .home-grid { grid-template-columns:1fr; gap:30px; }.timer { margin-top:20px; } .primary { margin-top:18px; } .paper-card { grid-template-columns:1fr; }.paper-meta { text-align:left; } .toolbar { grid-template-columns:1fr; } .phase { grid-template-columns:1fr; gap:11px; } .phase-name { position:static; } .prompt,.prodding { margin-left:17px; } }
+    /* ---- stats dashboard ---- */
+    .stats { max-width:1180px; margin:auto; padding:42px 24px 60px; font-family:Arial,sans-serif; }
+    .stats-head { border-bottom:1px solid var(--line); padding-bottom:22px; }
+    .stats-head h1 { font-family:Georgia,serif; font-size:clamp(2.4rem,5vw,4.2rem); }
+    .stats-head p { color:var(--muted); margin:10px 0 0; max-width:560px; font-size:1rem; }
+    .stat-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:26px; }
+    .stat-card { padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:6px; box-shadow:var(--shadow); }
+    .stat-card .num { font:700 1.9rem/1 Georgia,serif; color:var(--forest); display:block; }
+    .stat-card .lbl { display:block; margin-top:6px; color:var(--muted); font:600 11px Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }
+    .stats-section { margin-top:34px; }
+    .stats-section h2 { font-family:Georgia,serif; font-size:1.5rem; margin:0 0 4px; }
+    .stats-section p.hint { color:var(--muted); margin:0 0 16px; font-size:.9rem; }
+    .heatmap-scroll { overflow-x:auto; padding-bottom:6px; }
+    .heatmap { display:grid; grid-auto-flow:column; grid-template-rows:repeat(7,13px); gap:3px; }
+    .heatmap .cell { width:13px; height:13px; border-radius:2px; background:var(--track); cursor:pointer; }
+    .heatmap .cell[data-level="1"] { background:#c9e6d8; }
+    .heatmap .cell[data-level="2"] { background:#8fcdb0; }
+    .heatmap .cell[data-level="3"] { background:#4fa984; }
+    .heatmap .cell[data-level="4"] { background:var(--forest); }
+    html[data-theme="dark"] .heatmap .cell[data-level="1"] { background:#1f4a3c; }
+    html[data-theme="dark"] .heatmap .cell[data-level="2"] { background:#2c6b52; }
+    html[data-theme="dark"] .heatmap .cell[data-level="3"] { background:#3f9971; }
+    html[data-theme="dark"] .heatmap .cell[data-level="4"] { background:#5fd4b3; }
+    .heatmap-legend { display:flex; align-items:center; gap:6px; margin-top:8px; color:var(--muted); font-size:.75rem; }
+    .heatmap-legend .cell { width:11px; height:11px; border-radius:2px; }
+    .range-toggle { display:flex; gap:6px; margin-bottom:14px; }
+    .range-toggle button { cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--muted); border-radius:20px; padding:6px 14px; font:600 11px Arial,sans-serif; letter-spacing:.04em; text-transform:uppercase; }
+    .range-toggle button.active { background:var(--forest); color:#fff; border-color:var(--forest); }
+    .bar-chart-wrap { overflow-x:auto; }
+    .bar-chart { display:flex; align-items:flex-end; gap:6px; height:180px; min-width:100%; padding-top:10px; }
+    .bar-col { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; min-width:22px; }
+    .bar-col .bar { width:100%; max-width:26px; background:var(--forest); border-radius:3px 3px 0 0; min-height:2px; }
+    .bar-col .bar-label { font-size:.68rem; color:var(--muted); white-space:nowrap; }
+    .bar-col .bar-value { font-size:.68rem; color:var(--ink); font-weight:700; }
+    .day-detail { margin-top:14px; padding:12px 14px; background:var(--surface); border:1px solid var(--line); border-radius:4px; font-size:.88rem; }
+    .day-detail.empty-state { color:var(--muted); }
+    .steps-chart-bar .bar { background:var(--gold); }
+    .streak-note { margin-top:6px; color:var(--muted); font-size:.85rem; }
+
+    @media (max-width:700px) { .grid { grid-template-columns:1fr; } .panel.wide { grid-column:auto; } .add-row { grid-template-columns:1fr 1fr; } .passport dl { grid-template-columns:1fr; gap:2px; } .toolbar { grid-template-columns:1fr; } .meta-row, .meta-row.three { grid-template-columns:1fr; } .pdf-split { grid-template-columns:1fr; } .pdf-canvas-wrap { max-height:420px; } .annotation-list { max-height:300px; } .stat-cards { grid-template-columns:1fr 1fr; } }
+    @media (max-width:700px) { .shell,.library,.home,.stats { padding:20px 15px 44px; }.app-nav { padding:15px 15px 0; flex-wrap:wrap; }.nav-links { gap:10px; } header, .footer,.library-head { display:block; } .home-grid { grid-template-columns:1fr; gap:30px; }.timer { margin-top:20px; } .primary { margin-top:18px; } .paper-card { grid-template-columns:1fr; }.paper-meta { text-align:left; } .toolbar { grid-template-columns:1fr; } .phase { grid-template-columns:1fr; gap:11px; } .phase-name { position:static; } .prompt,.prodding { margin-left:17px; } }
   </style>
 </head>
 <body>
@@ -171,7 +210,7 @@
   <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <nav class="app-nav" aria-label="Primary navigation">
     <span class="brand-mark">◈ Paper Compass</span>
-    <span class="nav-links"><button id="navHome" class="active" type="button">Paper Compass</button><button id="navExplore" type="button">Explore</button><button id="navMethod" type="button">About</button></span>
+    <span class="nav-links"><button id="navHome" class="active" type="button">Paper Compass</button><button id="navExplore" type="button">Explore</button><button id="navStats" type="button">Stats</button><button id="navMethod" type="button">About</button></span>
     <span class="nav-links"><button id="themeToggle" type="button">◐ Theme</button><button id="signInBtn" type="button" hidden>Sign in</button><span id="userBadge" class="nav-links"><span id="userEmail"></span><button id="signOutBtn" type="button">Sign out</button></span></span>
   </nav>
 
@@ -196,7 +235,7 @@
     <p id="authStatus" class="account-note" aria-live="polite"></p>
   </section>
 
-  <section id="homeView" class="home app-view" hidden><div class="home-hero"><p class="eyebrow">A deep-reading practice for papers that matter</p><h1>Paper<br>Compass.</h1><p>Find broadly. Choose carefully. Read deeply.</p></div><div class="home-grid"><section class="continue"><h2>Continue reading</h2><p id="continueCopy">Your deep-reading workspace is ready.</p><div id="continueList" class="resume-list"></div><p class="library-summary" id="librarySummary"></p><button id="browsePapers" class="quiet-link" type="button">Browse all papers →</button></section><section class="practice"><h2>Deep dive</h2><p>Interrogate the papers that could change your thinking. No AI interpretation before your independent verdict.</p><button id="startPaper" class="primary" type="button">Start a deep dive</button><p style="margin-top:20px"><button id="learnMethod" class="quiet-link" type="button">Why this practice? →</button></p></section></div></section>
+  <section id="homeView" class="home app-view" hidden><div class="home-hero"><p class="eyebrow">A deep-reading practice for papers that matter</p><h1>Paper<br>Compass.</h1><p>Find broadly. Choose carefully. Read deeply.</p></div><div class="home-grid"><section class="continue"><h2>Continue reading</h2><p id="continueCopy">Your deep-reading workspace is ready.</p><div id="continueList" class="resume-list"></div><p class="library-summary" id="librarySummary"></p><button id="browsePapers" class="quiet-link" type="button">Browse all papers →</button></section><section class="practice"><h2>Deep dive</h2><p>Interrogate the papers that could change your thinking. No AI interpretation before your independent verdict.</p><button id="startPaper" class="primary" type="button">Start a deep dive</button><p style="margin-top:20px"><button id="learnMethod" class="quiet-link" type="button">Why this practice? →</button></p><p style="margin-top:8px"><button id="goStats" class="quiet-link" type="button">View reading stats →</button></p></section></div></section>
 
   <section id="libraryView" class="library app-view" hidden>
     <div class="library-head"><div><p class="eyebrow">Your saved deep reads</p><h1>Paper<br>Compass.</h1><p>Return to your evidence, independent verdicts, and the reasoning that led you there.</p></div><button id="newPaper" class="primary" type="button">+ New paper</button></div>
@@ -206,6 +245,61 @@
   </section>
 
   <section id="exploreView" class="explore app-view" hidden><p class="eyebrow">Explore · broad reading</p><h1>Find the landscape<br>before the deep dive.</h1><p>Search scholarly records here, then send the papers that matter to a structured deep reading.</p><form id="exploreSearch" class="search-bar"><input id="exploreQuery" required placeholder="Search title, topic, author, or DOI"><button class="primary" type="submit">Search</button></form><p id="searchStatus" class="search-status" aria-live="polite"></p><div id="searchResults"></div><div class="tool-list"><article class="tool"><h3>Google Scholar</h3><p>Find scholarly literature, related work, citations, authors, and publications.</p><a href="https://scholar.google.com/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Elicit</h3><p>Search and synthesize scientific evidence across a broad literature.</p><a href="https://elicit.com/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Zotero</h3><p>Collect, organize, annotate, and cite the sources you decide to keep.</p><a href="https://www.zotero.org/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Gemini Notebook</h3><p>Interrogate a selected collection of sources for orientation and comparison.</p><a href="https://notebooklm.google.com/" target="_blank" rel="noopener">Open ↗</a></article></div><p style="margin-top:25px"><button id="exploreNew" class="primary" type="button">Send a paper to deep dive</button></p></section>
+
+  <section id="statsView" class="stats app-view" hidden>
+    <div class="stats-head">
+      <p class="eyebrow">Your reading practice</p>
+      <h1>Reading stats.</h1>
+      <p>How much focused time you've put in, how consistently, and how many steps and papers you've carried through — all from your actual timed sessions and real step-completion history.</p>
+    </div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><span class="num" id="statTotalTime">0h 0m</span><span class="lbl">Total reading time</span></div>
+      <div class="stat-card"><span class="num" id="statSessions">0</span><span class="lbl">Sessions logged</span></div>
+      <div class="stat-card"><span class="num" id="statPapers">0</span><span class="lbl">Papers started</span></div>
+      <div class="stat-card"><span class="num" id="statCompleted">0</span><span class="lbl">Papers completed (7/7)</span></div>
+    </div>
+    <div class="stat-cards" style="margin-top:14px">
+      <div class="stat-card"><span class="num" id="statStreak">0</span><span class="lbl">Current streak (days)</span></div>
+      <div class="stat-card"><span class="num" id="statLongestStreak">0</span><span class="lbl">Longest streak (days)</span></div>
+      <div class="stat-card"><span class="num" id="statAvgSession">0m</span><span class="lbl">Average session length</span></div>
+      <div class="stat-card"><span class="num" id="statThisWeek">0h 0m</span><span class="lbl">This week</span></div>
+    </div>
+    <div class="stat-cards" style="margin-top:14px">
+      <div class="stat-card"><span class="num" id="statStepsThisWeek">0</span><span class="lbl">Steps completed this week</span></div>
+      <div class="stat-card"><span class="num" id="statStepsTotal">0</span><span class="lbl">Steps completed, all time</span></div>
+    </div>
+
+    <section class="stats-section">
+      <h2>Consistency calendar</h2>
+      <p class="hint">Darker days mean more minutes read. Click any day to see that day's sessions.</p>
+      <div class="heatmap-scroll"><div id="heatmap" class="heatmap"></div></div>
+      <div class="heatmap-legend">Less <span class="cell" data-level="0" style="background:var(--track)"></span><span class="cell" data-level="1"></span><span class="cell" data-level="2"></span><span class="cell" data-level="3"></span><span class="cell" data-level="4"></span> More</div>
+      <div id="dayDetail" class="day-detail empty-state">Click a day in the calendar to see its sessions.</div>
+    </section>
+
+    <section class="stats-section">
+      <h2>Reading time</h2>
+      <p class="hint">Total minutes read, grouped by the range you choose.</p>
+      <div class="range-toggle">
+        <button data-range="week" class="active" type="button">Weekly</button>
+        <button data-range="month" type="button">Monthly</button>
+        <button data-range="year" type="button">Yearly</button>
+      </div>
+      <div class="bar-chart-wrap"><div id="timeChart" class="bar-chart"></div></div>
+    </section>
+
+    <section class="stats-section">
+      <h2>Steps completed over time</h2>
+      <p class="hint">Exact count of step checkboxes you completed, by the date you actually checked them — not an estimate.</p>
+      <div class="range-toggle">
+        <button data-steps-range="week" class="active" type="button">Weekly</button>
+        <button data-steps-range="month" type="button">Monthly</button>
+        <button data-steps-range="year" type="button">Yearly</button>
+      </div>
+      <div class="bar-chart-wrap"><div id="stepsChart" class="bar-chart steps-chart-bar"></div></div>
+    </section>
+  </section>
 
   <section id="methodView" class="method app-view" hidden>
     <p class="eyebrow">About the practice</p>
@@ -406,11 +500,12 @@
     const LABELS_STORAGE_KEY = 'paper-compass-saved-labels-v1';
 
     const $=s=>document.querySelector(s), profileNames=['Research question clarity','Design appropriateness','Internal validity','Statistical credibility','Measurement quality','External validity','Reproducibility','Transparency','Strength of evidence','Strength of conclusions'];
-    const blankData=()=>({fields:{},evidence:[],claims:[],profile:{},history:[],verdictLocked:false,annotations:[],dismissedReminders:[]});
+    const blankData=()=>({fields:{},evidence:[],claims:[],profile:{},history:[],verdictLocked:false,annotations:[],dismissedReminders:[],stepHistory:[]});
     let library={papers:{},activeId:null}, data=blankData(), searchCache=[];
     let supaClient=null, currentUser=null, newPaperReturn=null;
     let pendingPdfFile=null; // PDF chosen in the "new paper" form, uploaded once the paper row exists
     let openPaperToken=0; // guards against a slow PDF load from paper A finishing after paper B was opened
+    let sessionsCache=[]; // reading_sessions rows for the current user, loaded lazily for the Stats view
     document.querySelectorAll('.phase')[2].after(document.querySelector('.workspace'));
 
     // ---- theme ----
@@ -527,6 +622,23 @@
       renderLabelChips();
     }
 
+    // ---- step-completion history (per paper, precise timestamps) ---- 
+    // Every s1..s7 checkbox change is logged here as {step, completedAt, action},
+    // separately from the generic autosave-on-input/change wiring below, so the
+    // Stats "steps completed over time" chart can be built from real events
+    // instead of an approximation.
+    function logStepChange(stepNum, checked){
+      data.stepHistory=data.stepHistory||[];
+      data.stepHistory.push({ step: stepNum, completedAt: Date.now(), action: checked?'completed':'uncompleted' });
+    }
+    [1,2,3,4,5,6,7].forEach(n=>{
+      const box=document.getElementById('s'+n);
+      box.addEventListener('change',()=>{
+        logStepChange(n, box.checked);
+        save(); // triggers the normal save/cloud-sync pipeline
+      });
+    });
+
     // ---- phase reminders (dismissible, persisted per paper) ----
     function renderReminders(){
       ['reminder1','reminder2','reminder3'].forEach(id=>{
@@ -552,9 +664,9 @@
     });
 
     // ---- view management ----
-    const allViews=['configErrorView','authView','homeView','libraryView','exploreView','methodView','newPaperView','workspaceView'];
+    const allViews=['configErrorView','authView','homeView','libraryView','exploreView','statsView','methodView','newPaperView','workspaceView'];
     function hideAllViews(){ allViews.forEach(id=>{const el=document.getElementById(id); if(el) el.hidden=true;}); }
-    function setNav(view){[['navHome','homeView'],['navExplore','exploreView'],['navMethod','methodView']].forEach(([n,v])=>$('#'+n).classList.toggle('active',v===view));}
+    function setNav(view){[['navHome','homeView'],['navExplore','exploreView'],['navStats','statsView'],['navMethod','methodView']].forEach(([n,v])=>$('#'+n).classList.toggle('active',v===view));}
 
     function relative(ts){const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000);return m<1?'just now':m<60?`${m}m ago`:m<1440?`${Math.floor(m/60)}h ago`:new Date(ts).toLocaleDateString();}
     function renderLibrary(){
@@ -597,11 +709,13 @@
       data.history=(data.history||[]).map(x=>typeof x==='string'?{at:Date.now(),label:x}:x);
       data.annotations=data.annotations||[];
       data.dismissedReminders=data.dismissedReminders||[];
+      data.stepHistory=data.stepHistory||[];
       data.fields.authors=data.fields.authors||p.authors||'';
       data.fields.journal=data.fields.journal||p.journal||'';
       data.fields.year=data.fields.year||p.year||'';
       fields().forEach(x=>{const v=data.fields[fieldKey(x)];x.type==='checkbox'?x.checked=Boolean(v):x.value=v||'';});
       resetPdfViewer();
+      resetTimerUI();
       hideAllViews(); $('#workspaceView').hidden=false; setNav('');
       update(); render();
       if(p.pdfPath){ await loadPdfFromStorage(p.pdfPath, myToken); }
@@ -875,12 +989,10 @@
       }
     }
     // Renders the current page's canvas AND a correctly-aligned pdf.js text layer.
-    // The canvas and text layer are wrapped in their own relatively-positioned
-    // "page stack" div sized exactly to the page, so the text layer's absolute
-    // top:0/left:0 always lines up with the canvas beneath it — regardless of
-    // the outer scroll container's padding/centering. Any previous text layer
-    // is fully removed first so stale/overlapping selectable text can never
-    // "peek through" from a prior render.
+    // Canvas + text layer live inside a single relatively-positioned "page stack"
+    // sized exactly to the page, so absolute top:0/left:0 always lines up —
+    // regardless of the scroll container's padding/centering. The wrap is fully
+    // cleared before each render so no stale/overlapping text layer can remain.
     async function renderPdfPage(){
       if(!pdfDoc||pdfRenderingLock) return;
       pdfRenderingLock=true;
@@ -997,6 +1109,33 @@
     $('#pdfZoomIn').onclick=()=>{ if(pdfDoc){ pdfScale=Math.min(pdfScale*1.15,3); renderPdfPage(); } };
     $('#pdfZoomOut').onclick=()=>{ if(pdfDoc){ pdfScale=Math.max(pdfScale/1.15,0.5); renderPdfPage(); } };
 
+    // ---- reading session logging (Stats) ----
+    let sessionStartedAt=null;
+    function resetTimerUI(){
+      seconds=0; if(interval){ clearInterval(interval); interval=null; } paint();
+      $('#timerButton').textContent='Start session';
+      sessionStartedAt=null;
+    }
+    async function flushSession(){
+      if(!sessionStartedAt||!currentUser||seconds<5){ sessionStartedAt=null; return; } // ignore accidental sub-5s taps
+      const startedAt=sessionStartedAt, endedAt=new Date(), durationSeconds=seconds;
+      sessionStartedAt=null;
+      const {error}=await supaClient.from('reading_sessions').insert({
+        user_id:currentUser.id, paper_id:library.activeId||null,
+        started_at:startedAt.toISOString(), ended_at:endedAt.toISOString(), duration_seconds:durationSeconds
+      });
+      if(!error){ sessionsCache=[]; } // invalidate cache so Stats refetches next time it's opened
+    }
+    // Best-effort flush if the tab is closed/refreshed mid-session.
+    window.addEventListener('beforeunload',()=>{
+      if(sessionStartedAt&&currentUser&&seconds>=5&&supaClient){
+        try{
+          const payload=JSON.stringify({user_id:currentUser.id,paper_id:library.activeId||null,started_at:sessionStartedAt.toISOString(),ended_at:new Date().toISOString(),duration_seconds:seconds});
+          navigator.sendBeacon(`${SUPABASE_URL}/rest/v1/reading_sessions`, new Blob([payload],{type:'application/json'}));
+        }catch(e){ /* best effort only */ }
+      }
+    });
+
     // ---- Supabase auth + data loading ---- 
     function authRedirectUrl(){ 
       const protocol=window.location.protocol; 
@@ -1047,11 +1186,6 @@
       if(!configured()){ $('#configErrorView').hidden=false; return; } 
       supaClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY); 
 
-      // Only react to genuine sign-in / sign-out transitions. Supabase also fires
-      // this listener on TOKEN_REFRESHED and on tab refocus/visibility checks —
-      // those must NOT reset navigation or reload the library, or any in-progress
-      // click/network activity (e.g. opening a paper, loading its PDF) can get
-      // yanked back to the home view mid-action.
       supaClient.auth.onAuthStateChange((event,session)=>{
         if(event==='SIGNED_IN'){
           const wasSignedOut=!currentUser;
@@ -1061,7 +1195,7 @@
           }
         } else if(event==='SIGNED_OUT'){
           applySessionUser(null);
-          library={papers:{},activeId:null}; data=blankData();
+          library={papers:{},activeId:null}; data=blankData(); sessionsCache=[];
           setTimeout(()=>showAuth('Sign in to access your saved papers and deep-reading workspace.'),0);
         } else {
           applySessionUser(session);
@@ -1101,7 +1235,7 @@
       btn.disabled=false; 
       status.textContent=error?`Could not send link: ${error.message}`:'Check your email. The link will return you to this Paper Compass page.'; 
     }; 
-    $('#signOutBtn').onclick=async()=>{ await supaClient.auth.signOut(); }; 
+    $('#signOutBtn').onclick=async()=>{ await flushSession(); await supaClient.auth.signOut(); }; 
     $('#signInBtn').onclick=()=>showAuth(); 
     $('#themeToggle').onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); applyTheme(cur==='dark'?'light':'dark'); }; 
 
@@ -1120,8 +1254,10 @@
       }, $('#modalExplore').checked);
     }; 
     $('#exploreSearch').onsubmit=e=>{e.preventDefault();searchExplore($('#exploreQuery').value.trim());}; 
-    $('#backToLibrary').onclick=()=>currentUser?showLibrary():showAuth(); $('#browsePapers').onclick=showLibrary; $('#learnMethod').onclick=showMethod; 
+    $('#backToLibrary').onclick=async()=>{ await flushSession(); currentUser?showLibrary():showAuth(); }; 
+    $('#browsePapers').onclick=showLibrary; $('#learnMethod').onclick=showMethod; 
     $('#navHome').onclick=showHome; $('#navExplore').onclick=showExplore; $('#navMethod').onclick=showMethod; 
+    $('#navStats').onclick=showStats; $('#goStats').onclick=showStats; 
     $('#importLocal').onclick=importLegacyLocal; 
 
     fields().forEach(x=>{ x.addEventListener('input',()=>save()); x.addEventListener('change',()=>save()); }); 
@@ -1131,7 +1267,20 @@
     $('#addClaim').onclick=()=>{const claim=$('#cClaim').value.trim();if(!claim){alert('Add an author claim first.');return;}data.claims.unshift({claim,evidence:$('#cEvidence').value.trim(),assessment:$('#cAssessment').value,strength:$('#cStrength').value});['cClaim','cEvidence'].forEach(id=>$('#'+id).value='');save();}; 
     $('#snapshot').onclick=()=>{recordMilestone(`Revision recorded — ${data.evidence.length} evidence item(s), ${data.claims.length} claim(s)`);save('Revision recorded');}; 
     $('#backup').onclick=()=>{readFields();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='paper-compass-backup.json';a.click();URL.revokeObjectURL(a.href);}; 
-    let seconds=0, interval; const clock=$('#clock'), timer=$('#timerButton'); function paint(){const h=String(Math.floor(seconds/3600)).padStart(2,'0'),m=String(Math.floor(seconds%3600/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');clock.textContent=`${h}:${m}:${s}`;} timer.onclick=()=>{if(interval){clearInterval(interval);interval=null;timer.textContent='Resume session';}else{interval=setInterval(()=>{seconds++;paint()},1000);timer.textContent='Pause session';}}; 
+
+    let seconds=0, interval; const clock=$('#clock'), timer=$('#timerButton');
+    function paint(){const h=String(Math.floor(seconds/3600)).padStart(2,'0'),m=String(Math.floor(seconds%3600/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');clock.textContent=`${h}:${m}:${s}`;}
+    timer.onclick=async()=>{
+      if(interval){
+        clearInterval(interval); interval=null; timer.textContent='Resume session';
+        await flushSession(); // logs this session chunk; resuming later starts a fresh logged session
+      } else {
+        if(!sessionStartedAt) sessionStartedAt=new Date();
+        interval=setInterval(()=>{seconds++;paint()},1000);
+        timer.textContent='Pause session';
+      }
+    };
+
     $('#clear').onclick=()=>{if(confirm('Clear this paper from your account? This deletes it from the cloud too.')){deletePaper(library.activeId).then(()=>showLibrary());}}; 
 
     function buildReviewModel(){
@@ -1189,6 +1338,182 @@
       md+=`## Red team\n\n${data.redTeam?data.redTeam.trim():(f.redTeam?f.redTeam.trim():'*No notes.*')}\n`;
       const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'})); a.download='paper-compass-review.md'; a.click(); URL.revokeObjectURL(a.href);
     };
+
+    // ---- STATS DASHBOARD ---- 
+    function dayKey(d){ const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; }
+    function monthKey(d){ const x=new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`; }
+    async function ensureSessionsLoaded(){
+      if(sessionsCache.length||!currentUser) return sessionsCache;
+      const {data:rows,error}=await supaClient.from('reading_sessions').select('*').eq('user_id',currentUser.id).order('started_at',{ascending:true});
+      if(error){ console.error(error); sessionsCache=[]; return sessionsCache; }
+      sessionsCache=rows||[];
+      return sessionsCache;
+    }
+    function computeStreaks(daySet){
+      const days=[...daySet].sort();
+      if(!days.length) return {current:0,longest:0};
+      let longest=1, run=1;
+      for(let i=1;i<days.length;i++){
+        const prev=new Date(days[i-1]), cur=new Date(days[i]);
+        const diff=Math.round((cur-prev)/86400000);
+        if(diff===1){ run++; } else { longest=Math.max(longest,run); run=1; }
+      }
+      longest=Math.max(longest,run);
+      let current=0; let cursor=new Date();
+      while(daySet.has(dayKey(cursor))){ current++; cursor.setDate(cursor.getDate()-1); }
+      return {current,longest};
+    }
+    function formatHM(totalSeconds){
+      const h=Math.floor(totalSeconds/3600), m=Math.round((totalSeconds%3600)/60);
+      return `${h}h ${m}m`;
+    }
+    // Flattens stepHistory from every paper into one array of completion events,
+    // each tagged with which paper it belongs to. Only 'completed' actions count
+    // toward the "steps completed" stats (unchecking a step doesn't count as
+    // negative progress here — it simply won't appear as a completion event).
+    function allStepCompletions(){
+      const events=[];
+      Object.values(library.papers).forEach(p=>{
+        (p.data.stepHistory||[]).forEach(ev=>{
+          if(ev.action==='completed') events.push({...ev, paperId:p.id});
+        });
+      });
+      return events.sort((a,b)=>a.completedAt-b.completedAt);
+    }
+    let statsRange='week';
+    let stepsRange='week';
+    async function showStats(){
+      if(!requireAuth('statsView')) return;
+      hideAllViews(); $('#statsView').hidden=false; setNav('statsView');
+      await renderStats();
+    }
+    async function renderStats(){
+      const sessions=await ensureSessionsLoaded();
+      const totalSeconds=sessions.reduce((sum,s)=>sum+(s.duration_seconds||0),0);
+      const papers=Object.values(library.papers);
+      const completed=papers.filter(p=>Object.entries(p.data.fields||{}).filter(([k,v])=>/^s[1-7]$/.test(k)&&v===true).length===7).length;
+      const stepEvents=allStepCompletions();
+
+      $('#statTotalTime').textContent=formatHM(totalSeconds);
+      $('#statSessions').textContent=sessions.length;
+      $('#statPapers').textContent=papers.length;
+      $('#statCompleted').textContent=completed;
+      $('#statAvgSession').textContent=sessions.length?`${Math.round((totalSeconds/sessions.length)/60)}m`:'0m';
+      $('#statStepsTotal').textContent=stepEvents.length;
+
+      const now=new Date();
+      const weekAgo=new Date(now); weekAgo.setDate(weekAgo.getDate()-6); weekAgo.setHours(0,0,0,0);
+      const thisWeekSeconds=sessions.filter(s=>new Date(s.started_at)>=weekAgo).reduce((sum,s)=>sum+(s.duration_seconds||0),0);
+      $('#statThisWeek').textContent=formatHM(thisWeekSeconds);
+      $('#statStepsThisWeek').textContent=stepEvents.filter(ev=>new Date(ev.completedAt)>=weekAgo).length;
+
+      const daySet=new Set(sessions.map(s=>dayKey(s.started_at)));
+      const {current,longest}=computeStreaks(daySet);
+      $('#statStreak').textContent=current;
+      $('#statLongestStreak').textContent=longest;
+
+      renderHeatmap(sessions);
+      renderTimeChart(sessions);
+      renderStepsChart(stepEvents);
+    }
+    function renderHeatmap(sessions){
+      const byDay={};
+      sessions.forEach(s=>{ const k=dayKey(s.started_at); byDay[k]=(byDay[k]||0)+(s.duration_seconds||0); });
+      const days=[]; const today=new Date(); today.setHours(0,0,0,0);
+      const totalDays=371; // ~53 weeks, GitHub-style
+      const start=new Date(today); start.setDate(start.getDate()-(totalDays-1));
+      while(start.getDay()!==0){ start.setDate(start.getDate()-1); }
+      for(let d=new Date(start); d<=today; d.setDate(d.getDate()+1)){
+        days.push(new Date(d));
+      }
+      const maxSeconds=Math.max(1,...Object.values(byDay));
+      const heatmap=$('#heatmap');
+      heatmap.innerHTML=days.map(d=>{
+        const k=dayKey(d);
+        const secs=byDay[k]||0;
+        let level=0;
+        if(secs>0){ const ratio=secs/maxSeconds; level = ratio>0.75?4 : ratio>0.5?3 : ratio>0.25?2 : 1; }
+        return `<div class="cell" data-level="${level}" data-day="${k}" data-secs="${secs}" title="${k}: ${Math.round(secs/60)}m"></div>`;
+      }).join('');
+      heatmap.querySelectorAll('.cell').forEach(cell=>cell.onclick=()=>{
+        const k=cell.dataset.day;
+        const daySessions=sessions.filter(s=>dayKey(s.started_at)===k);
+        const detail=$('#dayDetail');
+        if(!daySessions.length){
+          detail.className='day-detail empty-state';
+          detail.textContent=`No reading sessions on ${k}.`;
+          return;
+        }
+        detail.className='day-detail';
+        const totalM=Math.round(daySessions.reduce((s,x)=>s+x.duration_seconds,0)/60);
+        detail.innerHTML=`<strong>${k}</strong> — ${totalM} minute${totalM===1?'':'s'} across ${daySessions.length} session${daySessions.length===1?'':'s'}<br>`+
+          daySessions.map(s=>{
+            const paper=library.papers[s.paper_id];
+            const start=new Date(s.started_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+            return `${start} · ${Math.round(s.duration_seconds/60)}m${paper?` · ${esc(paper.title||'Untitled paper')}`:''}`;
+          }).join('<br>');
+      });
+    }
+    function renderTimeChart(sessions){
+      const wrap=$('#timeChart');
+      let buckets={}, order=[], labelFor;
+      if(statsRange==='week'){
+        for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d); buckets[k]=0; order.push(k); }
+        sessions.forEach(s=>{ const k=dayKey(s.started_at); if(k in buckets) buckets[k]+=s.duration_seconds; });
+        labelFor=k=>new Date(k).toLocaleDateString([], {weekday:'short'});
+      } else if(statsRange==='month'){
+        for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d); buckets[k]=0; order.push(k); }
+        sessions.forEach(s=>{ const k=dayKey(s.started_at); if(k in buckets) buckets[k]+=s.duration_seconds; });
+        labelFor=k=>{ const d=new Date(k); return `${d.getDate()}/${d.getMonth()+1}`; };
+      } else {
+        for(let i=11;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i,1); const k=monthKey(d); buckets[k]=0; order.push(k); }
+        sessions.forEach(s=>{ const k=monthKey(s.started_at); if(k in buckets) buckets[k]+=s.duration_seconds; });
+        labelFor=k=>{ const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString([], {month:'short'}); };
+      }
+      const maxVal=Math.max(1,...order.map(k=>buckets[k]));
+      wrap.innerHTML=order.map(k=>{
+        const secs=buckets[k];
+        const heightPct=Math.max(2,Math.round((secs/maxVal)*100));
+        const mins=Math.round(secs/60);
+        return `<div class="bar-col"><span class="bar-value">${mins?mins+'m':''}</span><div class="bar" style="height:${heightPct}%"></div><span class="bar-label">${esc(labelFor(k))}</span></div>`;
+      }).join('');
+    }
+    document.querySelectorAll('.range-toggle button[data-range]').forEach(btn=>btn.onclick=async()=>{
+      statsRange=btn.dataset.range;
+      document.querySelectorAll('.range-toggle button[data-range]').forEach(b=>b.classList.toggle('active',b===btn));
+      renderTimeChart(await ensureSessionsLoaded());
+    });
+    // Exact steps-completed chart, built from real stepHistory completion
+    // timestamps across every paper — no estimation.
+    function renderStepsChart(stepEvents){
+      stepEvents=stepEvents||allStepCompletions();
+      const wrap=$('#stepsChart');
+      let buckets={}, order=[], labelFor;
+      if(stepsRange==='week'){
+        for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d); buckets[k]=0; order.push(k); }
+        stepEvents.forEach(ev=>{ const k=dayKey(ev.completedAt); if(k in buckets) buckets[k]++; });
+        labelFor=k=>new Date(k).toLocaleDateString([], {weekday:'short'});
+      } else if(stepsRange==='month'){
+        for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d); buckets[k]=0; order.push(k); }
+        stepEvents.forEach(ev=>{ const k=dayKey(ev.completedAt); if(k in buckets) buckets[k]++; });
+        labelFor=k=>{ const d=new Date(k); return `${d.getDate()}/${d.getMonth()+1}`; };
+      } else {
+        for(let i=11;i>=0;i--){ const d=new Date(); d.setMonth(d.getMonth()-i,1); const k=monthKey(d); buckets[k]=0; order.push(k); }
+        stepEvents.forEach(ev=>{ const k=monthKey(ev.completedAt); if(k in buckets) buckets[k]++; });
+        labelFor=k=>{ const [y,m]=k.split('-'); return new Date(+y,+m-1,1).toLocaleDateString([], {month:'short'}); };
+      }
+      const maxVal=Math.max(1,...order.map(k=>buckets[k]));
+      wrap.innerHTML=order.map(k=>{
+        const val=buckets[k];
+        const heightPct=Math.max(2,Math.round((val/maxVal)*100));
+        return `<div class="bar-col"><span class="bar-value">${val||''}</span><div class="bar" style="height:${heightPct}%"></div><span class="bar-label">${esc(labelFor(k))}</span></div>`;
+      }).join('');
+    }
+    document.querySelectorAll('.range-toggle button[data-steps-range]').forEach(btn=>btn.onclick=()=>{
+      stepsRange=btn.dataset.stepsRange;
+      document.querySelectorAll('.range-toggle button[data-steps-range]').forEach(b=>b.classList.toggle('active',b===btn));
+      renderStepsChart();
+    });
 
     boot(); 
   </script> 
