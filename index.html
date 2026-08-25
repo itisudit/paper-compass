@@ -55,6 +55,7 @@
     #userBadge { display:none; }
     #userEmail { color:var(--muted); font-weight:600; text-transform:none; letter-spacing:0; }
     #themeToggle { border:1px solid var(--line) !important; border-radius:20px; padding:5px 12px !important; }
+    #signInBtn { border:1px solid var(--line); border-radius:3px; padding:6px 10px; background:var(--surface); color:var(--forest); cursor:pointer; font:700 12px Arial,sans-serif; letter-spacing:.04em; text-transform:uppercase; }
     .home { max-width:1180px; margin:auto; padding:45px 24px 60px; }.home-hero { max-width:710px; padding-bottom:34px; border-bottom:1px solid var(--line); }.home-hero h1 { font-size:clamp(3.2rem,8vw,6.7rem); }.home-hero p { max-width:560px; margin:15px 0 0; color:var(--muted); font-size:1.14rem; }.home-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(240px,.65fr); gap:45px; padding-top:28px; }.continue h2,.practice h2 { margin:0 0 9px; font-size:1.35rem; }.continue p,.practice p { color:var(--muted); margin:0 0 13px; }.resume-list { display:grid; gap:0; border-top:1px solid var(--line); }.resume { display:flex; justify-content:space-between; gap:16px; width:100%; padding:14px 0; cursor:pointer; text-align:left; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--ink); font:inherit; }.resume strong { display:block; }.resume span { color:var(--muted); font-size:.88rem; }.resume em { color:var(--forest); font:700 12px Arial,sans-serif; font-style:normal; white-space:nowrap; letter-spacing:.04em; text-transform:uppercase; }.library-summary { margin-top:28px; padding-top:20px; border-top:1px solid var(--line); font-size:.93rem; }.quiet-link { cursor:pointer; padding:0; border:0; background:transparent; color:var(--forest); font:700 12px Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }.explore,.method,.newpaper { max-width:900px; margin:52px auto; padding:0 24px 60px; }.explore > p,.method > p,.newpaper > p { max-width:590px; color:var(--muted); }.tool-list { margin-top:25px; border-top:1px solid var(--line); }.tool { display:grid; grid-template-columns:130px 1fr auto; gap:18px; align-items:center; padding:18px 0; border-bottom:1px solid var(--line); }.tool h3 { margin:0; }.tool p { margin:0; color:var(--muted); font-size:.92rem; }.tool a { color:var(--forest); font:700 12px Arial,sans-serif; letter-spacing:.05em; text-decoration:none; text-transform:uppercase; white-space:nowrap; }.method h2 { margin:38px 0 8px; }.method-flow { margin:23px 0; padding:20px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); color:var(--forest); font:600 15px/1.8 Arial,sans-serif; }
     .newpaper { max-width:640px; }.newpaper form { margin-top:26px; display:grid; gap:16px; }.newpaper .lookup-block { padding:14px; background:var(--surface); border:1px solid var(--line); border-radius:4px; }.newpaper .checkbox-row { display:flex; align-items:center; gap:8px; color:var(--ink); font:inherit; text-transform:none; letter-spacing:0; }.newpaper .checkbox-row input { width:auto; margin:0; }.form-actions { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:6px; }.cancel-link { cursor:pointer; border:0; padding:0; background:transparent; color:var(--muted); font:700 12px Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }
     .search-bar { display:grid; grid-template-columns:1fr auto; gap:9px; margin-top:24px; }.search-bar input { margin:0; }.search-status { min-height:22px; margin:9px 0; color:var(--muted); font-size:.88rem; }.result { display:grid; grid-template-columns:1fr auto; gap:16px; padding:15px 0; border-bottom:1px solid var(--line); }.result h3 { font-size:1.05rem; }.result p { margin:5px 0 0; color:var(--muted); font-size:.88rem; }.lookup { cursor:pointer; margin-top:8px; padding:7px 0; border:0; background:transparent; color:var(--forest); font:700 12px Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }.lookup-status { min-height:18px; margin:7px 0 0; color:var(--muted); font-size:.85rem; }
@@ -108,8 +109,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <nav class="app-nav" aria-label="Primary navigation">
     <span class="brand-mark">◈ Paper Compass</span>
-    <span class="nav-links"><button id="navHome" class="active" type="button">Paper Compass</button><button id="navExplore" type="button">Explore</button><button id="navLibrary" type="button">Library</button></span>
-    <span class="nav-links"><button id="themeToggle" type="button">◐ Theme</button><span id="userBadge" class="nav-links"><span id="userEmail"></span><button id="signOutBtn" type="button">Sign out</button></span></span>
+    <span class="nav-links"><button id="navHome" class="active" type="button">Paper Compass</button><button id="navExplore" type="button">Explore</button><button id="navMethod" type="button">About</button></span>
+    <span class="nav-links"><button id="themeToggle" type="button">◐ Theme</button><button id="signInBtn" type="button" hidden>Sign in</button><span id="userBadge" class="nav-links"><span id="userEmail"></span><button id="signOutBtn" type="button">Sign out</button></span></span>
   </nav>
 
   <section id="configErrorView" class="home app-view" hidden>
@@ -144,7 +145,44 @@
 
   <section id="exploreView" class="explore app-view" hidden><p class="eyebrow">Explore · broad reading</p><h1>Find the landscape<br>before the deep dive.</h1><p>Search scholarly records here, then send the papers that matter to a structured deep reading.</p><form id="exploreSearch" class="search-bar"><input id="exploreQuery" required placeholder="Search title, topic, author, or DOI"><button class="primary" type="submit">Search</button></form><p id="searchStatus" class="search-status" aria-live="polite"></p><div id="searchResults"></div><div class="tool-list"><article class="tool"><h3>Google Scholar</h3><p>Find scholarly literature, related work, citations, authors, and publications.</p><a href="https://scholar.google.com/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Elicit</h3><p>Search and synthesize scientific evidence across a broad literature.</p><a href="https://elicit.com/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Zotero</h3><p>Collect, organize, annotate, and cite the sources you decide to keep.</p><a href="https://www.zotero.org/" target="_blank" rel="noopener">Open ↗</a></article><article class="tool"><h3>Gemini Notebook</h3><p>Interrogate a selected collection of sources for orientation and comparison.</p><a href="https://notebooklm.google.com/" target="_blank" rel="noopener">Open ↗</a></article></div><p style="margin-top:25px"><button id="exploreNew" class="primary" type="button">Send a paper to deep dive</button></p></section>
 
-  <section id="methodView" class="method app-view" hidden><p class="eyebrow">About the practice</p><h1>Broad reading is not deep reading.</h1><p>Most literature workflows optimize for finding, summarizing, and storing. Paper Compass is for the consequential paper: the one you need to interrogate before you let it change your thinking.</p><div class="method-flow">Find → orient → select → interrogate → judge → remember</div><h2>Two speeds of research</h2><p><strong>Explore broadly.</strong> Search, screen, and orient yourself across a field. Be fast, wide, and selective.</p><p><strong>Read deeply.</strong> Establish context, examine methods and evidence, reach your own conclusion, then compare it with the authors' claims. Be slow, narrow, and critical.</p><h2>The seven-step method</h2><p>Overview · Research question · Knowledge gap · Methods &amp; power · Independent verdict · Reconciliation · Limits &amp; confounders</p><p><button id="methodStart" class="primary" type="button">Start a deep dive</button></p></section>
+  <section id="methodView" class="method app-view" hidden>
+    <p class="eyebrow">About the practice</p>
+    <h1>Why Paper<br>Compass?</h1>
+    <p>Paper Compass is built around a simple idea: a primary research paper should not be read like a novel. The goal is to move from passive reading to active analysis — deconstruct the authors’ arguments, examine the evidence, and form your own conclusion.</p>
+
+    <div class="method-flow">Find → orient → select → interrogate → judge → remember</div>
+
+    <h2>Broad reading and deep reading are different jobs</h2>
+    <p><strong>Broad reading</strong> helps you navigate a large literature quickly. Search, screen, compare, and orient yourself across a field before deciding which papers deserve your scarce attention.</p>
+    <p><strong>Deep reading</strong> is for the papers that could materially shape your research question. It is deliberately slower and more demanding: establish context, test the methods, inspect the evidence, reach your own conclusion, and only then compare it with the authors’ interpretation.</p>
+    <p>The article behind this project explicitly describes the deep-dive method as an intensive process intended for high-impact papers rather than broad background reading, and the author says he avoids AI for the deep-dive so that the reader retains their own critical judgement and scientific intuition.</p>
+
+    <h2>The seven-step framework</h2>
+    <p><strong>Phase 1 · The aerial view</strong><br>
+      01 · Get a broad overview<br>
+      02 · Identify the core research question<br>
+      03 · Map the existing knowledge gap
+    </p>
+    <p><strong>Phase 2 · The interrogation</strong><br>
+      04 · Assess the methodology<br>
+      05 · Reach your own conclusion from the results and figures
+    </p>
+    <p><strong>Phase 3 · The verdict</strong><br>
+      06 · Reconcile the authors’ conclusion against your own<br>
+      07 · Consider alternative explanations or confounding factors
+    </p>
+
+    <h2>What Paper Compass adds</h2>
+    <p>The framework is deliberately manual at the point where judgement matters. Paper Compass gives you a structured place to record your independent reading, lock your Step 5 verdict before opening the discussion, attach concerns to specific evidence, assess claims, and preserve the reasoning behind your conclusion.</p>
+
+    <div class="panel" style="margin-top:24px">
+      <h3>The source</h3>
+      <p class="hint">Jacques Cornwell, <em>How to read a research paper</em>, Nature 654, 828–829 (18 June 2026).</p>
+      <p><a href="https://www.nature.com/articles/d41586-026-01209-0" target="_blank" rel="noopener" style="color:var(--forest);font-weight:700;text-decoration:none">Read the original Nature article ↗</a></p>
+    </div>
+
+    <p style="margin-top:24px"><button id="methodStart" class="primary" type="button">Start a deep dive</button></p>
+  </section>
 
   <section id="newPaperView" class="newpaper app-view" hidden>
     <button id="backNewPaper" class="back" type="button">← Back</button>
@@ -303,7 +341,7 @@
     // ---- view management ----
     const allViews=['configErrorView','authView','homeView','libraryView','exploreView','methodView','newPaperView','workspaceView'];
     function hideAllViews(){ allViews.forEach(id=>{const el=document.getElementById(id); if(el) el.hidden=true;}); }
-    function setNav(view){[['navHome','homeView'],['navLibrary','libraryView'],['navExplore','exploreView']].forEach(([n,v])=>$('#'+n).classList.toggle('active',v===view));}
+    function setNav(view){[['navHome','homeView'],['navExplore','exploreView'],['navMethod','methodView']].forEach(([n,v])=>$('#'+n).classList.toggle('active',v===view));}
 
     function relative(ts){const d=Math.max(0,Date.now()-ts),m=Math.floor(d/60000);return m<1?'just now':m<60?`${m}m ago`:m<1440?`${Math.floor(m/60)}h ago`:new Date(ts).toLocaleDateString();}
     function renderLibrary(){
@@ -322,8 +360,8 @@
       renderLibrary();
     }
 
-    function showLibrary(){ hideAllViews(); $('#libraryView').hidden=false; setNav('libraryView'); renderLibrary(); }
-    function showHome(){
+    function showLibrary(){ if(!requireAuth('libraryView')) return; hideAllViews(); $('#libraryView').hidden=false; setNav('libraryView'); renderLibrary(); }
+    function showHome(){ if(!requireAuth('homeView')) return;
       const papers=Object.values(library.papers).sort((a,b)=>b.updatedAt-a.updatedAt),unfinished=papers.filter(p=>Object.entries(p.data.fields||{}).filter(([k,v])=>/^s[1-7]$/.test(k)&&v).length<7);
       $('#continueCopy').textContent=unfinished.length?'Pick up where your reading left off.':'Your deep-reading workspace is ready.';
       $('#continueList').innerHTML=unfinished.slice(0,3).map(p=>{const step=Object.entries(p.data.fields||{}).filter(([k,v])=>/^s[1-7]$/.test(k)&&!v).map(([k])=>+k.slice(1))[0]||7;const labels={1:'Get a broad overview',2:'Name the core question',3:'Map the knowledge gap',4:'Appraise methods & power',5:'Reach your conclusion first',6:'Reconcile conclusions',7:'Find confounders & limits'};return `<button class="resume" data-resume="${p.id}" type="button"><span><strong>${esc(p.title||'Untitled paper')}</strong><span>Step ${step} · ${labels[step]}</span></span><em>Continue →</em></button>`;}).join('');
@@ -334,6 +372,7 @@
     function showExplore(){ hideAllViews(); $('#exploreView').hidden=false; setNav('exploreView'); }
     function showMethod(){ hideAllViews(); $('#methodView').hidden=false; setNav(''); }
     function openPaper(id){
+      if(!requireAuth('workspaceView')) return;
       const p=library.papers[id]; if(!p) return;
       library.activeId=id; data={...blankData(),...p.data}; data.history=(data.history||[]).map(x=>typeof x==='string'?{at:Date.now(),label:x}:x);
       fields().forEach(x=>{const v=data.fields[fieldKey(x)];x.type==='checkbox'?x.checked=Boolean(v):x.value=v||'';});
@@ -343,6 +382,7 @@
 
     // ---- new paper (real page, not a popup) ----
     function showNewPaperView(prefill={}, returnTo=showHome){
+      if(!requireAuth('newPaperView')) return;
       newPaperReturn=returnTo;
       hideAllViews(); $('#newPaperView').hidden=false; setNav('');
       $('#modalTitle').value=prefill.title||''; $('#modalCitation').value=prefill.citation||''; $('#modalSource').value=prefill.source||'';
@@ -390,6 +430,32 @@
     }
 
     // ---- Supabase auth + data loading ----
+    // The magic-link destination must be an allowed Supabase Redirect URL. When deployed,
+    // use this page's real HTTPS URL. For local development, serve the file over http(s)
+    // rather than opening it as file:// so Supabase can redirect back correctly.
+    function authRedirectUrl(){
+      const protocol=window.location.protocol;
+      if(protocol==='http:'||protocol==='https:'){
+        const url=new URL(window.location.href);
+        url.hash='';
+        url.search='';
+        return url.toString();
+      }
+      return '';
+    }
+    function showAuth(message=''){
+      hideAllViews();
+      $('#authView').hidden=false;
+      setNav('');
+      $('#signInBtn').hidden=true;
+      if(message) $('#authStatus').textContent=message;
+      setTimeout(()=>$('#authEmail').focus(),0);
+    }
+    function requireAuth(nextView){
+      if(currentUser) return true;
+      showAuth('Sign in to continue to your Paper Compass workspace.');
+      return false;
+    }
     function configured(){ return /^https?:\/\//.test(SUPABASE_URL) && SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith('REPLACE_'); }
     async function loadLibrary(){
       library={papers:{},activeId:null};
@@ -401,17 +467,27 @@
       if(session&&session.user){
         currentUser=session.user;
         $('#userBadge').style.display='flex'; $('#userEmail').textContent=currentUser.email;
+        $('#signInBtn').hidden=true;
         await loadLibrary(); showHome();
       } else {
-        currentUser=null; $('#userBadge').style.display='none';
-        hideAllViews(); $('#authView').hidden=false; setNav('');
+        currentUser=null; library={papers:{},activeId:null}; data=blankData();
+        $('#userBadge').style.display='none';
+        $('#signInBtn').hidden=false;
+        showAuth('Sign in to access your saved papers and deep-reading workspace.');
       }
     }
     async function boot(){
       hideAllViews();
       if(!configured()){ $('#configErrorView').hidden=false; return; }
       supaClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-      supaClient.auth.onAuthStateChange((_event,session)=>handleSession(session));
+      supaClient.auth.onAuthStateChange((_event,session)=>setTimeout(()=>handleSession(session),0));
+      const hash=window.location.hash;
+      const params=new URLSearchParams(hash.startsWith('#')?hash.slice(1):hash);
+      const authError=params.get('error_description')||params.get('error');
+      if(authError){
+        showAuth(`Sign-in link error: ${decodeURIComponent(authError.replace(/\+/g,' '))}`);
+        window.history.replaceState({},document.title,window.location.pathname+window.location.search);
+      }
       const {data:{session}}=await supaClient.auth.getSession();
       await handleSession(session);
     }
@@ -421,11 +497,18 @@
       e.preventDefault();
       const email=$('#authEmail').value.trim(), status=$('#authStatus'), btn=e.target.querySelector('button');
       btn.disabled=true; status.textContent='Sending magic link…';
-      const {error}=await supaClient.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+      const redirectTo=authRedirectUrl();
+      if(!redirectTo){
+        btn.disabled=false;
+        status.textContent='This file is opened directly from disk. Host it on GitHub Pages (or use a local web server) before using magic-link login.';
+        return;
+      }
+      const {error}=await supaClient.auth.signInWithOtp({email,options:{emailRedirectTo:redirectTo}});
       btn.disabled=false;
-      status.textContent=error?`Could not send link: ${error.message}`:'Check your email for a sign-in link, then return to this page.';
+      status.textContent=error?`Could not send link: ${error.message}`:'Check your email. The link will return you to this Paper Compass page.';
     };
     $('#signOutBtn').onclick=async()=>{ await supaClient.auth.signOut(); };
+    $('#signInBtn').onclick=()=>showAuth();
     $('#themeToggle').onclick=()=>{ const cur=document.documentElement.getAttribute('data-theme'); applyTheme(cur==='dark'?'light':'dark'); };
 
     $('#newPaper').onclick=()=>showNewPaperView({},showLibrary);
@@ -436,8 +519,8 @@
     $('#lookupPaper').onclick=lookupPaper;
     $('#newPaperForm').onsubmit=async e=>{ e.preventDefault(); if(!$('#modalTitle').value.trim()){$('#lookupStatus').textContent='Add a title, or look up a DOI/PDF first.';return;} await createPaper($('#modalTitle').value,$('#modalCitation').value,$('#modalExplore').checked); };
     $('#exploreSearch').onsubmit=e=>{e.preventDefault();searchExplore($('#exploreQuery').value.trim());};
-    $('#backToLibrary').onclick=showHome; $('#browsePapers').onclick=showLibrary; $('#learnMethod').onclick=showMethod;
-    $('#navHome').onclick=showHome; $('#navLibrary').onclick=showLibrary; $('#navExplore').onclick=showExplore;
+    $('#backToLibrary').onclick=()=>currentUser?showLibrary():showAuth(); $('#browsePapers').onclick=showLibrary; $('#learnMethod').onclick=showMethod;
+    $('#navHome').onclick=showHome; $('#navExplore').onclick=showExplore; $('#navMethod').onclick=showMethod;
     $('#importLocal').onclick=importLegacyLocal;
 
     fields().forEach(x=>{ x.addEventListener('input',()=>save()); x.addEventListener('change',()=>save()); });
@@ -448,7 +531,7 @@
     $('#snapshot').onclick=()=>{recordMilestone(`Revision recorded — ${data.evidence.length} evidence item(s), ${data.claims.length} claim(s)`);save('Revision recorded');};
     $('#backup').onclick=()=>{readFields();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='paper-compass-backup.json';a.click();URL.revokeObjectURL(a.href);};
     let seconds=0, interval; const clock=$('#clock'), timer=$('#timerButton'); function paint(){const h=String(Math.floor(seconds/3600)).padStart(2,'0'),m=String(Math.floor(seconds%3600/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');clock.textContent=`${h}:${m}:${s}`;} timer.onclick=()=>{if(interval){clearInterval(interval);interval=null;timer.textContent='Resume session';}else{interval=setInterval(()=>{seconds++;paint()},1000);timer.textContent='Pause session';}};
-    $('#clear').onclick=()=>{if(confirm('Clear this paper from your account? This deletes it from the cloud too.')){deletePaper(library.activeId).then(()=>showHome());}};
+    $('#clear').onclick=()=>{if(confirm('Clear this paper from your account? This deletes it from the cloud too.')){deletePaper(library.activeId).then(()=>showLibrary());}};
     $('#export').onclick=()=>{
       readFields(); const f=data.fields, names=['Broad overview','Core question','Knowledge gap','Methods & power','My conclusion','Reconciled conclusion','Confounders & limits'];
       const steps=names.map((n,i)=>`${i+1}. ${n}\n${f['note-s'+(i+1)]||'(No notes)'}\n`).join('\n');
@@ -462,3 +545,7 @@
   </script>
 </body>
 </html>
+paper-compass-about.html
+HTML
+Unlock better answers from images in your files
+Upgrade to get better answers by looking at images, charts, and diagrams inside your PDF files.
