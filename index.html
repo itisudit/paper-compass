@@ -115,6 +115,16 @@
     .history { max-height:170px; overflow:auto; margin:0; padding-left:18px; color:var(--muted); font-size:.88rem; }.history li { margin:5px 0; }
     .auth-form { max-width:420px; margin-top:28px; display:grid; gap:14px; }
 
+    /* ---- labels with saved suggestions ---- */
+    .labels-field { position:relative; }
+    .label-chip-row { display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .label-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 9px; border-radius:12px; background:var(--leaf); color:var(--forest); font:600 11px Arial,sans-serif; letter-spacing:.02em; cursor:pointer; border:1px solid transparent; text-transform:none; }
+    .label-chip:hover { border-color:var(--forest); }
+    .label-add-row { display:flex; gap:6px; margin-top:8px; }
+    .label-add-row input { margin:0; }
+    .label-add-row button { flex-shrink:0; cursor:pointer; border:0; border-radius:3px; padding:0 12px; background:var(--forest); color:#fff; font:700 12px Arial,sans-serif; }
+    .label-saved-hint { margin:6px 0 0; color:var(--muted); font-size:.78rem; font-family:Arial,sans-serif; text-transform:none; letter-spacing:0; }
+
     /* ---- PDF + annotation workspace ---- */
     .pdf-workspace { margin:0 0 30px; }
     .pdf-workspace-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
@@ -131,7 +141,11 @@
     .pdf-toolbar button { cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:3px; padding:5px 9px; font-weight:700; }
     .pdf-toolbar span.pageinfo { color:var(--muted); margin:0 6px; }
     .pdf-canvas-wrap { position:relative; max-height:640px; overflow:auto; background:var(--track); text-align:center; padding:10px; }
-    .pdf-canvas-wrap canvas { box-shadow:0 4px 14px rgba(0,0,0,.15); background:#fff; }
+    .pdf-page-stack { position:relative; display:inline-block; }
+    .pdf-page-stack canvas { display:block; box-shadow:0 4px 14px rgba(0,0,0,.15); background:#fff; }
+    .pdf-text-layer { position:absolute; top:0; left:0; overflow:hidden; opacity:0.2; line-height:1; }
+    .pdf-text-layer span, .pdf-text-layer br { color:transparent; position:absolute; white-space:pre; cursor:text; transform-origin:0 0; }
+    .pdf-text-layer ::selection { background:rgba(228,173,69,.4); }
     .pdf-empty { padding:40px 20px; color:var(--muted); text-align:center; font-size:.92rem; }
     .selection-bar { display:none; padding:10px 12px; border-top:1px solid var(--line); background:var(--gold-tint); gap:8px; align-items:center; flex-wrap:wrap; }
     .selection-bar.show { display:flex; }
@@ -276,7 +290,15 @@
       <label>Journal<input id="journal" placeholder="Journal name"></label>
       <label>Year<input id="year" placeholder="2026"></label>
       <label>DOI / citation<input id="citation" placeholder="DOI or citation"></label>
-      <label class="full">Labels<input id="labels" placeholder="field, method, project"></label>
+      <div class="full labels-field">
+        <label>Labels<input id="labels" placeholder="field, method, project"></label>
+        <div id="labelChipRow" class="label-chip-row"></div>
+        <div class="label-add-row">
+          <input id="newLabelInput" placeholder="Create a new label, e.g. immunology">
+          <button id="addNewLabel" type="button">Save label</button>
+        </div>
+        <p class="label-saved-hint">Saved labels are remembered on this device and suggested for every future paper. Click a chip to add it here.</p>
+      </div>
       <div class="progress-wrap"><div class="progress-label"><span>Review progress</span><span id="progressText">0 / 7</span></div><div class="progress" aria-label="Review progress"><span id="progressBar"></span></div></div>
     </section>
     <hr class="rule">
@@ -369,7 +391,7 @@
       </div>
     </section>
 
-    <footer class="footer"><div><strong>Manual practice, not AI substitution.</strong><br>Use this for high-impact papers; preserve your own scientific judgement.</div><div class="actions"><button class="secondary" id="clear" type="button">Clear workspace</button><button class="secondary" id="backup" type="button">Backup data (.json)</button><button id="export" type="button">Export review (.txt)</button></div></footer>
+    <footer class="footer"><div><strong>Manual practice, not AI substitution.</strong><br>Use this for high-impact papers; preserve your own scientific judgement.</div><div class="actions"><button class="secondary" id="clear" type="button">Clear workspace</button><button class="secondary" id="backup" type="button">Backup data (.json)</button><button id="exportTxt" type="button">Export review (.txt)</button><button id="exportMd" type="button">Export review (.md)</button></div></footer>
     <p id="saved" class="saved" aria-live="polite"></p>
   </main>
 
@@ -381,6 +403,7 @@
     const SUPABASE_URL = 'https://xpbnzbqzwldtouqhvhgc.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_R5RAQMS_7o4n3rIr5nu_Ww_T1XQyBKb';
     const PDF_BUCKET = 'paper-pdfs';
+    const LABELS_STORAGE_KEY = 'paper-compass-saved-labels-v1';
 
     const $=s=>document.querySelector(s), profileNames=['Research question clarity','Design appropriateness','Internal validity','Statistical credibility','Measurement quality','External validity','Reproducibility','Transparency','Strength of evidence','Strength of conclusions'];
     const blankData=()=>({fields:{},evidence:[],claims:[],profile:{},history:[],verdictLocked:false,annotations:[],dismissedReminders:[]});
@@ -403,7 +426,46 @@
     }
     initTheme();
 
-    const fields=()=>[...document.querySelectorAll('input,textarea')].filter(x=>!['eConcern','eEvidence','eLocation','eSeverity','cClaim','cEvidence','cAssessment','cStrength','modalTitle','modalCitation','modalExplore','modalSource','modalPdf','modalAuthors','modalJournal','modalYear','authEmail','workspacePdf','selectionLink'].includes(x.id));
+    // ---- saved labels (personal taxonomy, kept in localStorage, reused across every paper) ----
+    function getSavedLabels(){
+      try{ return JSON.parse(localStorage.getItem(LABELS_STORAGE_KEY)||'[]'); }catch(e){ return []; }
+    }
+    function setSavedLabels(list){
+      localStorage.setItem(LABELS_STORAGE_KEY, JSON.stringify([...new Set(list.map(l=>l.trim()).filter(Boolean))]));
+    }
+    function addSavedLabel(label){
+      const clean=label.trim(); if(!clean) return;
+      const list=getSavedLabels();
+      if(!list.some(l=>l.toLowerCase()===clean.toLowerCase())){ list.push(clean); setSavedLabels(list); }
+      renderLabelChips();
+    }
+    function currentLabelsList(){
+      return $('#labels').value.split(',').map(l=>l.trim()).filter(Boolean);
+    }
+    function addLabelToField(label){
+      const current=currentLabelsList();
+      if(current.some(l=>l.toLowerCase()===label.toLowerCase())) return;
+      current.push(label);
+      $('#labels').value=current.join(', ');
+      $('#labels').dispatchEvent(new Event('input'));
+    }
+    function renderLabelChips(){
+      const row=$('#labelChipRow'); if(!row) return;
+      const saved=getSavedLabels();
+      if(!saved.length){ row.innerHTML=''; return; }
+      row.innerHTML=saved.map(l=>`<button type="button" class="label-chip" data-chip="${esc(l)}">${esc(l)} +</button>`).join('');
+      row.querySelectorAll('[data-chip]').forEach(btn=>btn.onclick=()=>addLabelToField(btn.dataset.chip));
+    }
+    $('#addNewLabel').onclick=()=>{
+      const input=$('#newLabelInput'); const val=input.value.trim();
+      if(!val) return;
+      addSavedLabel(val);
+      addLabelToField(val);
+      input.value='';
+    };
+    $('#newLabelInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('#addNewLabel').click(); } });
+
+    const fields=()=>[...document.querySelectorAll('input,textarea')].filter(x=>!['eConcern','eEvidence','eLocation','eSeverity','cClaim','cEvidence','cAssessment','cStrength','modalTitle','modalCitation','modalExplore','modalSource','modalPdf','modalAuthors','modalJournal','modalYear','authEmail','workspacePdf','selectionLink','newLabelInput'].includes(x.id));
     const fieldKey=x=>x.dataset.note?`note-${x.dataset.note}`:x.id;
     function readFields(){ fields().forEach(x=>data.fields[fieldKey(x)]=x.type==='checkbox'?x.checked:x.value); }
 
@@ -462,6 +524,7 @@
       document.querySelectorAll('.delete[data-version],.delete[data-e],.delete[data-c]').forEach(b=>b.onclick=()=>{if(b.dataset.version!==undefined){if(confirm('Open this earlier version? Your current version remains in history.')){const current=structuredClone(data);data=structuredClone(data.history[+b.dataset.version].snapshot);data.history=current.history;fields().forEach(x=>{const v=data.fields[fieldKey(x)];x.type==='checkbox'?x.checked=Boolean(v):x.value=v||'';});save('Earlier version opened');}}else if(b.dataset.e!==undefined)data.evidence.splice(+b.dataset.e,1);else data.claims.splice(+b.dataset.c,1);save();});
       renderReminders();
       renderAnnotations();
+      renderLabelChips();
     }
 
     // ---- phase reminders (dismissible, persisted per paper) ----
@@ -620,7 +683,7 @@
       const doc=await pdfjsLib.getDocument({data:buf}).promise;
       const meta=await doc.getMetadata().catch(()=>null);
       let fullText='';
-      const pagesToScan=Math.min(2,doc.numPages); // title/DOI/authors are almost always on page 1–2
+      const pagesToScan=Math.min(2,doc.numPages);
       const lines=[];
       for(let i=1;i<=pagesToScan;i++){
         const page=await doc.getPage(i);
@@ -811,6 +874,13 @@
         setPdfStatus('PDF loaded here, but upload failed: '+err.message,'error');
       }
     }
+    // Renders the current page's canvas AND a correctly-aligned pdf.js text layer.
+    // The canvas and text layer are wrapped in their own relatively-positioned
+    // "page stack" div sized exactly to the page, so the text layer's absolute
+    // top:0/left:0 always lines up with the canvas beneath it — regardless of
+    // the outer scroll container's padding/centering. Any previous text layer
+    // is fully removed first so stale/overlapping selectable text can never
+    // "peek through" from a prior render.
     async function renderPdfPage(){
       if(!pdfDoc||pdfRenderingLock) return;
       pdfRenderingLock=true;
@@ -819,25 +889,26 @@
         const viewport=page.getViewport({scale:pdfScale});
         const wrap=$('#pdfCanvasWrap');
         wrap.innerHTML='';
+
+        const stack=document.createElement('div');
+        stack.className='pdf-page-stack';
+        stack.style.width=viewport.width+'px';
+        stack.style.height=viewport.height+'px';
+        wrap.appendChild(stack);
+
         const canvas=document.createElement('canvas');
         canvas.width=viewport.width; canvas.height=viewport.height;
-        wrap.appendChild(canvas);
+        stack.appendChild(canvas);
         await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
 
         const textContent=await page.getTextContent();
         const textLayer=document.createElement('div');
-        textLayer.style.position='absolute';
-        textLayer.style.left=canvas.offsetLeft+'px';
-        textLayer.style.top=canvas.offsetTop+'px';
+        textLayer.className='pdf-text-layer';
         textLayer.style.width=viewport.width+'px';
         textLayer.style.height=viewport.height+'px';
-        textLayer.style.opacity='0.2';
-        textLayer.style.lineHeight='1';
-        textLayer.className='pdf-text-layer';
-        wrap.style.position='relative';
-        wrap.appendChild(textLayer);
+        stack.appendChild(textLayer);
         if(window.pdfjsLib && pdfjsLib.renderTextLayer){
-          pdfjsLib.renderTextLayer({textContentSource:textContent,container:textLayer,viewport,textDivs:[]});
+          await pdfjsLib.renderTextLayer({textContentSource:textContent,container:textLayer,viewport,textDivs:[]}).promise;
         }
         $('#pdfPageInfo').textContent=`${pdfCurrentPage} / ${pdfDoc.numPages}`;
         $('#pdfZoomInfo').textContent=`${Math.round(pdfScale/1.15*100)}%`;
@@ -851,7 +922,8 @@
       const sel=window.getSelection();
       if(!sel||sel.isCollapsed||!sel.toString().trim()){ return; }
       const anchor=sel.anchorNode;
-      if(!anchor || !$('#pdfCanvasWrap').contains(anchor)) return;
+      const wrap=$('#pdfCanvasWrap');
+      if(!anchor || !wrap || !wrap.contains(anchor)) return;
       const text=sel.toString().trim();
       if(!text) return;
       pdfPendingSelection={text,page:pdfCurrentPage};
@@ -992,8 +1064,6 @@
           library={papers:{},activeId:null}; data=blankData();
           setTimeout(()=>showAuth('Sign in to access your saved papers and deep-reading workspace.'),0);
         } else {
-          // TOKEN_REFRESHED, USER_UPDATED, INITIAL_SESSION fired again, etc.
-          // Just keep the user info current; never navigate or reload data.
           applySessionUser(session);
         }
       }); 
@@ -1063,16 +1133,62 @@
     $('#backup').onclick=()=>{readFields();const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));a.download='paper-compass-backup.json';a.click();URL.revokeObjectURL(a.href);}; 
     let seconds=0, interval; const clock=$('#clock'), timer=$('#timerButton'); function paint(){const h=String(Math.floor(seconds/3600)).padStart(2,'0'),m=String(Math.floor(seconds%3600/60)).padStart(2,'0'),s=String(seconds%60).padStart(2,'0');clock.textContent=`${h}:${m}:${s}`;} timer.onclick=()=>{if(interval){clearInterval(interval);interval=null;timer.textContent='Resume session';}else{interval=setInterval(()=>{seconds++;paint()},1000);timer.textContent='Pause session';}}; 
     $('#clear').onclick=()=>{if(confirm('Clear this paper from your account? This deletes it from the cloud too.')){deletePaper(library.activeId).then(()=>showLibrary());}}; 
-    $('#export').onclick=()=>{ 
-      readFields(); const f=data.fields, names=['Broad overview','Core question','Knowledge gap','Methods & power','My conclusion','Reconciled conclusion','Confounders & limits']; 
-      const steps=names.map((n,i)=>`${i+1}. ${n}\n${f['note-s'+(i+1)]||'(No notes)'}\n`).join('\n'); 
-      const evidence=data.evidence.map(x=>`• ${x.concern}: ${x.evidence} (${x.location}; ${x.severity})`).join('\n'); 
-      const claims=data.claims.map(x=>`• ${x.claim} | ${x.evidence} | ${x.assessment} (${x.strength})`).join('\n'); 
-      const annotations=(data.annotations||[]).map(a=>`• [${annotationTargetLabel(a.linkTo)} · p.${a.page||'?'}] "${a.text}"${a.note?` — ${a.note}`:''}`).join('\n'); 
-      const metaLine=[f.authors,f.journal,f.year].filter(Boolean).join(' · '); 
-      const content=`PAPER COMPASS REVIEW\n${f.title||'Untitled paper'}\n${metaLine}\n${f.citation||''}\n\n${steps}\nEVIDENCE\n${evidence}\n\nCLAIM MATRIX\n${claims}\n\nPDF ANNOTATIONS\n${annotations}\n\nWHAT WOULD CHANGE MY MIND\n${f.changeMind||'(No notes)'}`; 
-      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'})); a.download='paper-compass-review.txt'; a.click(); URL.revokeObjectURL(a.href); 
-    }; 
+
+    function buildReviewModel(){
+      readFields();
+      const f=data.fields;
+      const stepNames=['Broad overview','Core question','Knowledge gap','Methods & power','My conclusion','Reconciled conclusion','Confounders & limits'];
+      const steps=stepNames.map((n,i)=>({n,text:f['note-s'+(i+1)]||''}));
+      return { f, steps, evidence:data.evidence, claims:data.claims, annotations:data.annotations||[], profile:data.profile||{} };
+    }
+    $('#exportTxt').onclick=()=>{
+      const {f,steps,evidence,claims,annotations}=buildReviewModel();
+      const stepsText=steps.map((s,i)=>`${i+1}. ${s.n}\n${s.text||'(No notes)'}\n`).join('\n');
+      const evidenceText=evidence.map(x=>`• ${x.concern}: ${x.evidence} (${x.location}; ${x.severity})`).join('\n');
+      const claimsText=claims.map(x=>`• ${x.claim} | ${x.evidence} | ${x.assessment} (${x.strength})`).join('\n');
+      const annotationsText=annotations.map(a=>`• [${annotationTargetLabel(a.linkTo)} · p.${a.page||'?'}] "${a.text}"${a.note?` — ${a.note}`:''}`).join('\n');
+      const metaLine=[f.authors,f.journal,f.year].filter(Boolean).join(' · ');
+      const content=`PAPER COMPASS REVIEW\n${f.title||'Untitled paper'}\n${metaLine}\n${f.citation||''}\n\n${stepsText}\nEVIDENCE\n${evidenceText}\n\nCLAIM MATRIX\n${claimsText}\n\nPDF ANNOTATIONS\n${annotationsText}\n\nWHAT WOULD CHANGE MY MIND\n${f.changeMind||'(No notes)'}`;
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'})); a.download='paper-compass-review.txt'; a.click(); URL.revokeObjectURL(a.href);
+    };
+    function mdEscapeCell(v){ return String(v||'—').replace(/\|/g,'\\|').replace(/\n/g,' '); }
+    $('#exportMd').onclick=()=>{
+      const {f,steps,evidence,claims,annotations,profile}=buildReviewModel();
+      const metaLine=[f.authors,f.journal,f.year].filter(Boolean).join(' · ');
+      let md=`# ${f.title||'Untitled paper'}\n\n`;
+      if(metaLine) md+=`*${metaLine}*\n\n`;
+      if(f.citation) md+=`**Citation:** ${f.citation}\n\n`;
+      if(f.labels) md+=`**Labels:** ${f.labels}\n\n`;
+      md+=`---\n\n## Seven-step review\n\n`;
+      steps.forEach((s,i)=>{
+        md+=`### ${i+1}. ${s.n}\n\n${s.text?s.text.trim():'*No notes.*'}\n\n`;
+      });
+      md+=`---\n\n## Evidence log\n\n`;
+      if(evidence.length){
+        md+=`| Concern | Evidence | Location | Severity |\n|---|---|---|---|\n`;
+        evidence.forEach(x=>{ md+=`| ${mdEscapeCell(x.concern)} | ${mdEscapeCell(x.evidence)} | ${mdEscapeCell(x.location)} | ${mdEscapeCell(x.severity)} |\n`; });
+      } else { md+=`*No evidence recorded.*\n`; }
+      md+=`\n## Claim → evidence matrix\n\n`;
+      if(claims.length){
+        md+=`| Author's claim | Evidence presented | Assessment | Strength |\n|---|---|---|---|\n`;
+        claims.forEach(x=>{ md+=`| ${mdEscapeCell(x.claim)} | ${mdEscapeCell(x.evidence)} | ${mdEscapeCell(x.assessment)} | ${mdEscapeCell(x.strength)} |\n`; });
+      } else { md+=`*No claims assessed.*\n`; }
+      md+=`\n## PDF annotations\n\n`;
+      if(annotations.length){
+        annotations.forEach(a=>{
+          md+=`- **${annotationTargetLabel(a.linkTo)}** (p.${a.page||'?'}): "${a.text}"${a.note?`\n  - *Comment:* ${a.note}`:''}\n`;
+        });
+      } else { md+=`*No annotations saved.*\n`; }
+      md+=`\n## Confidence profile\n\n`;
+      const assessed=Object.entries(profile).filter(([,v])=>v&&v!=='Unassessed');
+      if(assessed.length){
+        md+=`| Dimension | Assessment |\n|---|---|\n`;
+        assessed.forEach(([k,v])=>{ md+=`| ${mdEscapeCell(k)} | ${mdEscapeCell(v)} |\n`; });
+      } else { md+=`*Not yet assessed.*\n`; }
+      md+=`\n## What would change my mind\n\n${f.changeMind?f.changeMind.trim():'*No notes.*'}\n\n`;
+      md+=`## Red team\n\n${data.redTeam?data.redTeam.trim():(f.redTeam?f.redTeam.trim():'*No notes.*')}\n`;
+      const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown'})); a.download='paper-compass-review.md'; a.click(); URL.revokeObjectURL(a.href);
+    };
 
     boot(); 
   </script> 
