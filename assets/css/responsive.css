@@ -1,0 +1,12 @@
+@media (max-width:700px) { .grid { grid-template-columns:1fr; } .panel.wide { grid-column:auto; } .add-row { grid-template-columns:1fr 1fr; } .passport dl { grid-template-columns:1fr; gap:2px; } .toolbar { grid-template-columns:1fr; } .meta-row, .meta-row.three { grid-template-columns:1fr; } .pdf-split { grid-template-columns:1fr; } .pdf-canvas-wrap { max-height:420px; } .annotation-list { max-height:300px; } .stat-cards { grid-template-columns:1fr 1fr; } }
+@media (max-width:700px) { .shell,.library,.home,.stats { padding:20px 15px 44px; }.app-nav { padding:15px 15px 0; flex-wrap:wrap; }.nav-links { gap:10px; } header, .footer,.library-head { display:block; } .home-grid { grid-template-columns:1fr; gap:30px; }.timer { margin-top:20px; } .primary { margin-top:18px; } .paper-card { grid-template-columns:1fr; }.paper-meta { text-align:left; } .toolbar { grid-template-columns:1fr; } .phase { grid-template-columns:1fr; gap:11px; } .phase-name { position:static; } .prompt,.prodding { margin-left:17px; } }
+
+
+/* Minimal annotation control */
+.annotate-btn { white-space:nowrap; flex:0 0 auto; font-size:.82rem; padding:8px 11px; }
+
+
+/* Minimal step-by-step Deep Dive */
+.step-navigator{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 22px;padding:10px 0;border-bottom:1px solid var(--line);font-family:Arial,sans-serif}
+.step-nav-copy{min-width:0}.step-nav-kicker{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}.step-nav-title{font-size:14px;font-weight:700;margin-top:3px}.step-nav-controls{display:flex;gap:7px;align-items:center}.step-nav-controls button{padding:6px 10px;font-size:12px}.step-dots{display:flex;gap:5px}.step-dot{width:7px;height:7px;border-radius:50%;background:var(--line);border:0;padding:0}.step-dot.done{background:var(--forest)}.step-dot.active{background:var(--gold);transform:scale(1.25)}
+.phase.step-hidden{display:none}.step.step-hidden{display:none}.workspace.audit-collapsed{display:none}.audit-toggle{margin:0 0 18px}.audit-toggle button{font-size:12px;padding:7px 10px}

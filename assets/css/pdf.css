@@ -1,0 +1,45 @@
+/* ---- PDF + annotation workspace ---- */
+.pdf-workspace { margin:0 0 30px; }
+.pdf-workspace-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.pdf-workspace-head h2 { margin:0 0 5px; font-size:1.35rem; }
+.pdf-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.pdf-upload-row input[type=file] { width:auto; margin:0; }
+.pdf-status-pill { font:600 11px Arial,sans-serif; letter-spacing:.03em; color:var(--muted); }
+.pdf-status-pill.uploading { color:var(--gold); }
+.pdf-status-pill.ready { color:var(--forest); }
+.pdf-status-pill.error { color:var(--coral); }
+.pdf-split { display:grid; grid-template-columns:1.3fr 1fr; gap:16px; margin-top:16px; }
+.pdf-pane { background:var(--surface); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); overflow:hidden; }
+.pdf-toolbar { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; font-size:.82rem; flex-wrap:wrap; }
+.pdf-toolbar button { cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:3px; padding:5px 9px; font-weight:700; }
+.pdf-toolbar .annotate-btn { background:var(--forest); color:#fff; border-color:var(--forest); margin-left:8px; padding:8px 11px; font:700 11px Arial,sans-serif; letter-spacing:.04em; }
+.pdf-toolbar .annotate-btn.active { background:var(--gold); border-color:var(--gold); color:var(--ink); }
+/* Keep annotation discoverable without making the reading UI loud. */
+.pdf-toolbar .annotate-btn::after { content:""; }
+.pdf-toolbar { position:relative; }
+.pdf-toolbar span.pageinfo { color:var(--muted); margin:0 6px; }
+.pdf-canvas-wrap { position:relative; max-height:640px; overflow:auto; background:var(--track); text-align:center; padding:10px; }
+.pdf-page-stack { position:relative; display:inline-block; }
+.pdf-page-stack canvas { display:block; box-shadow:0 4px 14px rgba(0,0,0,.15); background:#fff; }
+.pdf-text-layer { position:absolute; inset:0; z-index:2; overflow:hidden; opacity:0; line-height:1; pointer-events:none; user-select:none; }
+.pdf-page-stack.annotation-active canvas { pointer-events:none; }
+.pdf-page-stack.annotation-active .pdf-text-layer { opacity:1; pointer-events:auto; user-select:text; cursor:text; }
+.pdf-text-layer span, .pdf-text-layer br { color:transparent; position:absolute; white-space:pre; cursor:text; transform-origin:0 0; user-select:text; }
+.pdf-page-stack.annotation-active .pdf-text-layer span { color:rgba(0,0,0,.01); }
+.pdf-text-layer ::selection { background:rgba(228,173,69,.4); }
+.pdf-empty { padding:40px 20px; color:var(--muted); text-align:center; font-size:.92rem; }
+.selection-bar { display:none; padding:10px 12px; border-top:1px solid var(--line); background:var(--gold-tint); gap:8px; align-items:center; flex-wrap:wrap; }
+.selection-bar.show { display:flex; }
+.selection-bar .snippet { flex:1; min-width:160px; font-size:.85rem; font-style:italic; color:var(--ink); }
+.selection-bar select, .selection-bar button { width:auto; margin:0; }
+.annotation-list { max-height:640px; overflow:auto; padding:6px; }
+.annotation-item { padding:11px 12px; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; }
+.annotation-item blockquote { margin:0 0 6px; padding-left:10px; border-left:3px solid var(--gold); font:italic 400 .88rem/1.4 Georgia,serif; color:var(--ink); }
+.annotation-item .meta { display:flex; justify-content:space-between; gap:8px; align-items:center; color:var(--muted); font-size:.72rem; letter-spacing:.03em; text-transform:uppercase; }
+.annotation-item .note-input { width:100%; margin-top:6px; border:1px solid var(--line); border-radius:3px; padding:7px 8px; background:var(--surface); color:var(--ink); font-family:Georgia,serif; font-size:.88rem; min-height:0; }
+.annotation-item .link-row { display:flex; gap:6px; margin-top:6px; align-items:center; flex-wrap:wrap; }
+.annotation-item .link-row select { width:auto; padding:5px 6px; font-size:.78rem; }
+.annotation-item .tag { display:inline-block; padding:2px 7px; border-radius:10px; background:var(--leaf); color:var(--forest); font:700 10.5px Arial,sans-serif; letter-spacing:.04em; text-transform:uppercase; }
+.annotation-empty { padding:24px 14px; color:var(--muted); font-size:.88rem; font-family:Arial,sans-serif; }
+.pdf-note { margin:10px 0 0; color:var(--muted); font-size:.85rem; }
+
