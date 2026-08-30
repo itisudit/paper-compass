@@ -14,7 +14,7 @@ button, input, textarea, select { font:inherit; }
 .shell { max-width:1180px; margin:auto; padding:28px 24px 60px; }
 header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; border-bottom:1px solid var(--line); padding-bottom:26px; }
 .eyebrow { margin:0 0 8px; color:var(--forest); font:600 12px/1.2 Arial,sans-serif; letter-spacing:.12em; text-transform:uppercase; }
-h1 { margin:0; font-size:clamp(2.2rem,5vw,4.4rem); line-height:.95; letter-spacing:-.05em; }
+h1 { margin:0; font-size:clamp(1.75rem,3.8vw,3.25rem); line-height:.95; letter-spacing:-.05em; }
 .subtitle { max-width:590px; margin:15px 0 0; color:var(--muted); font-size:1.08rem; }
 .timer { min-width:185px; padding:15px 17px; background:#172426; color:#fff; border-radius:4px; font-family:Arial,sans-serif; }
 .timer small { display:block; opacity:.7; text-transform:uppercase; letter-spacing:.08em; font-size:10px; }
@@ -45,7 +45,7 @@ input, select { width:100%; margin-top:7px; border:1px solid var(--line); border
 .step-top { display:flex; align-items:center; gap:12px; padding:15px 17px 12px; }
 .step-top input { width:18px; height:18px; margin:0; accent-color:var(--forest); }
 .num { color:var(--muted); font:600 11px Arial,sans-serif; letter-spacing:.08em; }
-h3 { margin:0; font-size:1.25rem; line-height:1.1; flex:1; }
+h3 { margin:0; font-size:1.04rem; line-height:1.1; flex:1; }
 .hint-toggle { margin-left:auto; flex-shrink:0; cursor:pointer; border:1px solid var(--line); border-radius:50%; width:24px; height:24px; background:var(--surface); color:var(--muted); font:700 12px Arial,sans-serif; }
 .hint-toggle.active { background:var(--gold-tint); border-color:var(--gold); color:var(--ink); }
 .prompt { margin:0 17px 12px 47px; color:var(--muted); font-size:.94rem; }
@@ -87,7 +87,7 @@ textarea:focus, input:focus { outline:3px solid rgba(228,173,69,.3); border-colo
 .back { cursor:pointer; border:0; padding:0; background:transparent; color:var(--forest); font:700 12px Arial,sans-serif; letter-spacing:.07em; text-transform:uppercase; }
 .account-note { margin:18px 0 0; color:var(--muted); font-size:.86rem; }
 .workspace { margin:38px 0 10px; padding-top:28px; border-top:1px solid var(--line); }
-.workspace > h2 { margin:0 0 5px; font-size:1.7rem; }
+.workspace > h2 { margin:0 0 5px; font-size:1.4rem; }
 .workspace > p { margin:0 0 18px; color:var(--muted); }
 .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
 .panel { padding:18px; background:var(--surface); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); }
@@ -128,7 +128,7 @@ textarea:focus, input:focus { outline:3px solid rgba(228,173,69,.3); border-colo
 /* ---- PDF + annotation workspace ---- */
 .pdf-workspace { margin:0 0 30px; }
 .pdf-workspace-head { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-.pdf-workspace-head h2 { margin:0 0 5px; font-size:1.7rem; }
+.pdf-workspace-head h2 { margin:0 0 5px; font-size:1.35rem; }
 .pdf-upload-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .pdf-upload-row input[type=file] { width:auto; margin:0; }
 .pdf-status-pill { font:600 11px Arial,sans-serif; letter-spacing:.03em; color:var(--muted); }
@@ -139,6 +139,11 @@ textarea:focus, input:focus { outline:3px solid rgba(228,173,69,.3); border-colo
 .pdf-pane { background:var(--surface); border:1px solid var(--line); border-radius:4px; box-shadow:var(--shadow); overflow:hidden; }
 .pdf-toolbar { display:flex; align-items:center; gap:8px; padding:10px 12px; border-bottom:1px solid var(--line); font-family:Arial,sans-serif; font-size:.82rem; flex-wrap:wrap; }
 .pdf-toolbar button { cursor:pointer; border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:3px; padding:5px 9px; font-weight:700; }
+.pdf-toolbar .annotate-btn { background:var(--forest); color:#fff; border-color:var(--forest); margin-left:8px; padding:8px 11px; font:700 11px Arial,sans-serif; letter-spacing:.04em; }
+.pdf-toolbar .annotate-btn.active { background:var(--gold); border-color:var(--gold); color:var(--ink); }
+/* Keep annotation discoverable without making the reading UI loud. */
+.pdf-toolbar .annotate-btn::after { content:""; }
+.pdf-toolbar { position:relative; }
 .pdf-toolbar span.pageinfo { color:var(--muted); margin:0 6px; }
 .pdf-canvas-wrap { position:relative; max-height:640px; overflow:auto; background:var(--track); text-align:center; padding:10px; }
 .pdf-page-stack { position:relative; display:inline-block; }
@@ -205,81 +210,8 @@ html[data-theme="dark"] .heatmap .cell[data-level="4"] { background:#5fd4b3; }
 @media (max-width:700px) { .shell,.library,.home,.stats { padding:20px 15px 44px; }.app-nav { padding:15px 15px 0; flex-wrap:wrap; }.nav-links { gap:10px; } header, .footer,.library-head { display:block; } .home-grid { grid-template-columns:1fr; gap:30px; }.timer { margin-top:20px; } .primary { margin-top:18px; } .paper-card { grid-template-columns:1fr; }.paper-meta { text-align:left; } .toolbar { grid-template-columns:1fr; } .phase { grid-template-columns:1fr; gap:11px; } .phase-name { position:static; } .prompt,.prodding { margin-left:17px; } }
 
 
-/* =========================================================
-   DEEP DIVE REDESIGN — focused reading workspace
-   ========================================================= */
-.workspace-shell { max-width:1180px; margin:0 auto; }
-.workspace-compact-header { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; padding:18px 0 20px; border-bottom:1px solid var(--line); }
-.workspace-compact-title { min-width:0; }
-.workspace-compact-title .eyebrow { margin-bottom:6px; }
-.workspace-paper-title { margin:0; font-size:clamp(1.8rem,4vw,3.2rem); line-height:1.02; letter-spacing:-.04em; overflow-wrap:anywhere; }
-.workspace-paper-meta { margin:8px 0 0; color:var(--muted); font-size:.92rem; }
-.workspace-progress { min-width:170px; padding-top:4px; }
-.workspace-progress .progress-wrap { padding:0; }
-.workspace-tabs { display:flex; gap:4px; margin:20px 0 22px; border-bottom:1px solid var(--line); }
-.workspace-tab { cursor:pointer; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; padding:10px 14px; background:transparent; color:var(--muted); font:700 11px Arial,sans-serif; letter-spacing:.07em; text-transform:uppercase; }
-.workspace-tab.active { color:var(--forest); border-color:var(--forest); }
-.workspace-pane { display:none; }
-.workspace-pane.active { display:block; }
-.reading-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(340px,.8fr); gap:20px; align-items:start; }
-.reading-layout .pdf-workspace { margin:0; }
-.reading-layout .pdf-workspace-head { padding:0 0 10px; }
-.reading-layout .pdf-workspace-head h2 { font-size:1.2rem; }
-.reading-layout .pdf-workspace-head > div:first-child p { display:none; }
-.reading-layout .pdf-split { display:block; margin-top:10px; }
-.reading-layout .pdf-split > .pdf-pane:last-child { display:none; }
-.reading-layout .pdf-canvas-wrap { max-height:calc(100vh - 250px); min-height:480px; }
-.step-side { position:sticky; top:16px; }
-.step-side-top { padding:0 0 13px; border-bottom:1px solid var(--line); margin-bottom:14px; }
-.phase-label { margin:0 0 5px; color:var(--forest); font:700 11px Arial,sans-serif; letter-spacing:.1em; text-transform:uppercase; }
-.keep-in-mind { margin:8px 0 0; color:var(--muted); font:italic .9rem/1.45 Georgia,serif; }
-.step-nav { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px; }
-.step-nav button { cursor:pointer; border:1px solid var(--line); border-radius:3px; padding:8px 10px; background:var(--surface); color:var(--forest); font:700 11px Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; }
-.step-nav button:disabled { opacity:.4; cursor:default; }
-.step-rail { display:flex; gap:5px; margin:0 0 16px; }
-.step-rail button { width:30px; height:30px; cursor:pointer; border:1px solid var(--line); border-radius:50%; background:var(--surface); color:var(--muted); font:700 11px Arial,sans-serif; }
-.step-rail button.done { background:var(--leaf); color:var(--forest); border-color:var(--forest); }
-.step-rail button.current { background:var(--forest); color:#fff; border-color:var(--forest); }
-.step-side .phase { display:block; margin:0; }
-.step-side .phase-name, .step-side .phase-reminder { display:none !important; }
-.step-side .step-list { display:block; }
-.step-side .step { display:none; box-shadow:none; border-left-width:4px; }
-.step-side .step.current-step { display:block; }
-.step-side .step-top { padding:15px 16px 10px; }
-.step-side .prompt, .step-side .prodding { margin-left:16px; }
-.step-side textarea { width:calc(100% - 32px); margin:0 16px 16px; min-height:230px; }
-.linked-evidence { margin-top:14px; border-top:1px solid var(--line); padding-top:13px; }
-.linked-evidence-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-.linked-evidence-head h4 { margin:0; font:700 11px Arial,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); }
-.linked-evidence-list { display:grid; gap:8px; margin-top:9px; }
-.linked-evidence-item { padding:9px 10px; background:var(--gold-tint); border-left:3px solid var(--gold); font-size:.88rem; }
-.linked-evidence-item small { display:block; margin-top:4px; color:var(--muted); font:600 10px Arial,sans-serif; letter-spacing:.04em; text-transform:uppercase; }
-.annotation-drawer { margin-top:18px; border-top:1px solid var(--line); padding-top:14px; }
-.annotation-drawer summary { cursor:pointer; color:var(--forest); font:700 11px Arial,sans-serif; letter-spacing:.06em; text-transform:uppercase; }
-.annotation-drawer .annotation-list { max-height:360px; padding:8px 0 0; }
-.audit-view .workspace { margin:0; padding-top:0; border-top:0; }
-.info-view .toolbar { padding:0; max-width:760px; }
-.info-view .toolbar .progress-wrap { display:none; }
-.workspace #workspaceHeaderOriginal, .workspace #workspaceRuleOriginal { display:none !important; }
-/* Compact header replaces the old hero while preserving all original controls in the DOM. */
-.workspace > header, .workspace > .toolbar, .workspace > .rule { display:none; }
-.workspace .pdf-workspace { display:none; }
-.workspace > .phase { display:none; }
-.workspace > .workspace { display:none; }
-.workspace-enhanced-ready > header { display:none !important; }
-.workspace-enhanced-ready > .toolbar, .workspace-enhanced-ready > .rule { display:none !important; }
-@media (max-width:900px){
-  .reading-layout { grid-template-columns:1fr; }
-  .step-side { position:static; }
-  .reading-layout .pdf-canvas-wrap { max-height:520px; min-height:360px; }
-}
-@media (max-width:700px){
-  .workspace-compact-header { display:block; }
-  .workspace-progress { margin-top:16px; max-width:260px; }
-  .workspace-tabs { overflow-x:auto; }
-  .workspace-tab { padding-left:10px; padding-right:10px; white-space:nowrap; }
-  .step-rail { overflow-x:auto; padding-bottom:4px; }
-}
+/* Minimal annotation control */
+.annotate-btn { white-space:nowrap; flex:0 0 auto; font-size:.82rem; padding:8px 11px; }
 
 </style>
 </head>
@@ -495,6 +427,7 @@ html[data-theme="dark"] .heatmap .cell[data-level="4"] { background:#5fd4b3; }
         <button id="pdfZoomOut" type="button">−</button>
         <span class="pageinfo" id="pdfZoomInfo">100%</span>
         <button id="pdfZoomIn" type="button">+</button>
+        <button id="annotateMode" class="annotate-btn" type="button">✦ Annotate</button>
       </div>
       <div id="pdfCanvasWrap" class="pdf-canvas-wrap"><p class="pdf-empty">No PDF loaded yet. Upload one above to read alongside your notes — select any text to turn it into a linked annotation.</p></div>
       <div id="selectionBar" class="selection-bar">
@@ -1111,6 +1044,14 @@ async function renderPdfPage(){
   pdfRenderingLock=false;
 }
 function hideSelectionBar(){ $('#selectionBar').classList.remove('show'); pdfPendingSelection=null; }
+let annotationMode=false;
+$('#annotateMode').onclick=()=>{
+  annotationMode=!annotationMode;
+  const btn=$('#annotateMode');
+  btn.classList.toggle('active',annotationMode);
+  btn.textContent=annotationMode?'✦ Select text to annotate':'✦ Annotate';
+  $('#pdfNote').textContent=annotationMode?'Annotation mode on: select text directly in the PDF, then choose where to link it and save.':"Your PDF is stored privately in your account's cloud storage — reopening this paper on any device will reload it automatically.";
+};
 document.addEventListener('selectionchange',()=>{
   const sel=window.getSelection();
   if(!sel||sel.isCollapsed||!sel.toString().trim()){ return; }
@@ -1119,6 +1060,8 @@ document.addEventListener('selectionchange',()=>{
   if(!anchor || !wrap || !wrap.contains(anchor)) return;
   const text=sel.toString().trim();
   if(!text) return;
+  annotationMode=true;
+  const annotateBtn=$('#annotateMode'); if(annotateBtn){ annotateBtn.classList.add('active'); annotateBtn.textContent='✦ Select text to annotate'; }
   pdfPendingSelection={text,page:pdfCurrentPage};
   $('#selectionSnippet').textContent=`“${text.length>140?text.slice(0,140)+'…':text}”`;
   $('#selectionBar').classList.add('show');
@@ -1596,148 +1539,6 @@ document.querySelectorAll('.range-toggle button[data-steps-range]').forEach(btn=
   renderStepsChart();
 });
 
-
-// =========================================================
-// Focused Deep Dive UI layer
-// Keeps the existing data model, cloud sync, timer, PDF viewer,
-// audit trail and seven-step logic intact, but changes the workspace
-// from one long form into a focused, step-by-step reading instrument.
-// =========================================================
-let deepCurrentStep=1;
-const deepSteps={
-  1:{phase:'Phase 1 · Aerial view',reminder:"Don't let the introduction's framing become your framing. Note what's asserted versus what's cited."},
-  2:{phase:'Phase 1 · Aerial view',reminder:"Don't let the introduction's framing become your framing. Note what's asserted versus what's cited."},
-  3:{phase:'Phase 1 · Aerial view',reminder:"Don't let the introduction's framing become your framing. Note what's asserted versus what's cited."},
-  4:{phase:'Phase 2 · Interrogation',reminder:'Methods and results deserve more of your time than the discussion. Read them slower than feels natural.'},
-  5:{phase:'Phase 2 · Interrogation',reminder:'Reach your conclusion from the evidence before letting the authors interpret it for you.'},
-  6:{phase:'Phase 3 · Verdict',reminder:'Compare your conclusion with the authors only after you have committed your own reading.'},
-  7:{phase:'Phase 3 · Verdict',reminder:'Actively search for alternative explanations and confounding factors before closing the case.'}
-};
-function deepStepEl(n){ return document.querySelector('.step input#s'+n)?.closest('.step'); }
-function deepFirstIncomplete(){
-  for(let n=1;n<=7;n++){ const b=document.getElementById('s'+n); if(b&&!b.checked) return n; }
-  return 7;
-}
-function deepEscape(v){ return String(v||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function ensureFocusedWorkspace(){
-  const workspace=document.getElementById('workspaceView');
-  if(!workspace || workspace.dataset.focused==='1') return;
-  workspace.dataset.focused='1';
-  workspace.classList.add('workspace-enhanced-ready');
-
-  const header=workspace.querySelector('header');
-  const toolbar=workspace.querySelector('.toolbar');
-  const rule=workspace.querySelector('.rule');
-  const pdf=workspace.querySelector('.pdf-workspace');
-  const phases=[...workspace.querySelectorAll(':scope > .phase')];
-  const audit=workspace.querySelector(':scope > .workspace');
-  if(!header||!toolbar||!pdf||!audit) return;
-
-  header.id='workspaceHeaderOriginal'; if(rule) rule.id='workspaceRuleOriginal';
-  const shell=document.createElement('div');
-  shell.className='workspace-shell';
-  shell.innerHTML=`
-    <div class="workspace-compact-header">
-      <div class="workspace-compact-title">
-        <p class="eyebrow">Deep dive · critical reading</p>
-        <h1 class="workspace-paper-title" id="focusedPaperTitle">Untitled paper</h1>
-        <p class="workspace-paper-meta" id="focusedPaperMeta">Add paper details in Paper info.</p>
-      </div>
-      <div class="workspace-progress"><div class="progress-wrap"><div class="progress-label"><span>Review progress</span><span id="focusedProgressText">0 / 7</span></div><div class="progress"><span id="focusedProgressBar"></span></div></div></div>
-    </div>
-    <div class="workspace-tabs" role="tablist">
-      <button class="workspace-tab active" data-focused-tab="read" type="button">Read</button>
-      <button class="workspace-tab" data-focused-tab="audit" type="button">Audit</button>
-      <button class="workspace-tab" data-focused-tab="info" type="button">Paper info</button>
-    </div>
-    <section class="workspace-pane active" data-focused-pane="read">
-      <div class="reading-layout"><div class="reading-pdf"></div><aside class="step-side"><div class="step-side-top"><p class="phase-label" id="focusedPhaseLabel"></p><p class="keep-in-mind" id="focusedReminder"></p></div><div class="step-rail" id="focusedStepRail"></div><div id="focusedStepMount"></div><div class="step-nav"><button id="focusedPrev" type="button">← Previous</button><button id="focusedNext" type="button">Next →</button></div><div id="focusedLinkedEvidence"></div></aside></div>
-    </section>
-    <section class="workspace-pane audit-view" data-focused-pane="audit"></section>
-    <section class="workspace-pane info-view" data-focused-pane="info"></section>
-  `;
-  workspace.insertBefore(shell, header);
-  shell.querySelector('.reading-pdf').appendChild(pdf);
-  const stepMount=shell.querySelector('#focusedStepMount');
-  phases.forEach(phase=>stepMount.appendChild(phase));
-  shell.querySelector('[data-focused-pane="audit"]').appendChild(audit);
-  shell.querySelector('[data-focused-pane="info"]').appendChild(toolbar);
-
-  const drawer=document.createElement('details');
-  drawer.className='annotation-drawer';
-  drawer.innerHTML='<summary>All linked annotations</summary>';
-  const list=document.getElementById('annotationList');
-  if(list) drawer.appendChild(list);
-  shell.querySelector('#focusedLinkedEvidence').after(drawer);
-
-  shell.querySelectorAll('[data-focused-tab]').forEach(btn=>btn.onclick=()=>setFocusedTab(btn.dataset.focusedTab));
-  shell.querySelector('#focusedPrev').onclick=()=>setFocusedStep(deepCurrentStep-1);
-  shell.querySelector('#focusedNext').onclick=()=>setFocusedStep(deepCurrentStep+1);
-  document.querySelectorAll('.done').forEach(box=>box.addEventListener('change',()=>setTimeout(renderFocusedWorkspace,0)));
-}
-function setFocusedTab(name){
-  const shell=document.querySelector('.workspace-shell'); if(!shell) return;
-  shell.querySelectorAll('[data-focused-tab]').forEach(b=>b.classList.toggle('active',b.dataset.focusedTab===name));
-  shell.querySelectorAll('[data-focused-pane]').forEach(p=>p.classList.toggle('active',p.dataset.focusedPane===name));
-}
-function setFocusedStep(n){
-  deepCurrentStep=Math.max(1,Math.min(7,n));
-  renderFocusedWorkspace();
-  const current=deepStepEl(deepCurrentStep); if(current){ current.querySelector('textarea')?.focus(); }
-}
-function renderFocusedLinkedEvidence(){
-  const target=document.getElementById('focusedLinkedEvidence'); if(!target) return;
-  const anns=(data&&data.annotations)||[];
-  const key='note-s'+deepCurrentStep;
-  const items=anns.filter(a=>a.linkTo===key).slice(0,8);
-  target.className='linked-evidence';
-  target.innerHTML=`<div class="linked-evidence-head"><h4>Linked evidence</h4><span class="num">${items.length}</span></div><div class="linked-evidence-list">${items.length?items.map(a=>`<div class="linked-evidence-item">“${deepEscape(a.text)}”<small>p. ${deepEscape(a.page||'?')}</small></div>`).join(''):'<div class="annotation-empty">Select text in the PDF to attach evidence directly to this step.</div>'}</div>`;
-}
-function renderFocusedWorkspace(){
-  const shell=document.querySelector('.workspace-shell'); if(!shell) return;
-  const fieldsData=(data&&data.fields)||{};
-  const title=fieldsData.title||document.getElementById('title')?.value||'Untitled paper';
-  const meta=[fieldsData.authors, [fieldsData.journal,fieldsData.year].filter(Boolean).join(' · ')].filter(Boolean).join(' · ');
-  document.getElementById('focusedPaperTitle').textContent=title;
-  document.getElementById('focusedPaperMeta').textContent=meta||'Add paper details in Paper info.';
-  const count=[1,2,3,4,5,6,7].filter(n=>document.getElementById('s'+n)?.checked).length;
-  document.getElementById('focusedProgressText').textContent=`${count} / 7`;
-  document.getElementById('focusedProgressBar').style.width=`${count/7*100}%`;
-  document.getElementById('focusedPhaseLabel').textContent=deepSteps[deepCurrentStep].phase;
-  document.getElementById('focusedReminder').textContent=deepSteps[deepCurrentStep].reminder;
-  const rail=document.getElementById('focusedStepRail');
-  rail.innerHTML=[1,2,3,4,5,6,7].map(n=>`<button type="button" class="${n===deepCurrentStep?'current ':''}${document.getElementById('s'+n)?.checked?'done':''}" data-focused-step="${n}" aria-label="Go to step ${n}">${n}</button>`).join('');
-  rail.querySelectorAll('[data-focused-step]').forEach(b=>b.onclick=()=>setFocusedStep(+b.dataset.focusedStep));
-  [1,2,3,4,5,6,7].forEach(n=>deepStepEl(n)?.classList.toggle('current-step',n===deepCurrentStep));
-  document.getElementById('focusedPrev').disabled=deepCurrentStep===1;
-  document.getElementById('focusedNext').disabled=deepCurrentStep===7;
-  document.getElementById('focusedNext').textContent=deepCurrentStep===7?'Finish →':'Next →';
-  renderFocusedLinkedEvidence();
-}
-// Default PDF annotations to the currently visible step. This removes one
-// unnecessary decision from every annotation while retaining the dropdown
-// for deliberate relinking.
-const originalSelectionLinkChange=()=>{};
-function bindFocusedAnnotationDefault(){
-  const sel=document.getElementById('selectionLink');
-  if(!sel || sel.dataset.focusedBound==='1') return;
-  sel.dataset.focusedBound='1';
-  const apply=()=>{ if(!sel.value) sel.value='note-s'+deepCurrentStep; };
-  document.addEventListener('selectionchange',()=>{
-    const s=window.getSelection();
-    const wrap=document.getElementById('pdfCanvasWrap');
-    if(s && !s.isCollapsed && s.anchorNode && wrap && wrap.contains(s.anchorNode)) apply();
-  });
-}
-const originalOpenPaperForFocusedUI=openPaper;
-openPaper=async function(id){
-  const result=await originalOpenPaperForFocusedUI(id);
-  ensureFocusedWorkspace();
-  deepCurrentStep=deepFirstIncomplete();
-  bindFocusedAnnotationDefault();
-  renderFocusedWorkspace();
-  return result;
-};
 
 boot(); 
 
