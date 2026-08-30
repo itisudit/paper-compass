@@ -1,0 +1,1 @@
+/* UI event wiring currently retained in core.js. */

@@ -1,0 +1,1 @@
+/* Auth logic currently retained in core.js. */
