@@ -1,4 +1,4 @@
-# Paper Compass — Modular Codebase
+# Paper Compass Codebase
 
 This is a functionality-preserving split of the original single-file application. Script files are loaded as classic scripts in dependency order, so existing global functions and state continue to work without a risky rewrite into ES modules.
 
