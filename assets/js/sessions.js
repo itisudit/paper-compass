@@ -1,1 +1,0 @@
-/* Session logic currently retained in core.js. */
