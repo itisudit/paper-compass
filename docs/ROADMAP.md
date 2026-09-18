@@ -1,27 +1,30 @@
 # Roadmap
 
+## Done
+
+* Clean foundation
+* Paper entry
+* Triage
+* Surf / Swim / Dive Deep
+* Park for later
+
 ## Now
 
-- Clean foundation
-- Paper entry
-- Triage
-- Surf / Swim / Dive Deep
-
-## Next
-
-- Focused reading environment
-- PDF + thinking panel
-- Guided reading journey
-- Evidence linking
-- Save and resume
+* Focused reading environment
+* PDF + thinking panel
+* Guided reading journey
+* First stages of active scientific reading
+* Preserve the reader's thinking across stages
 
 ## Later
 
-- Cross-paper connections
-- Literature synthesis
-- AI assistance
-- Search and discovery
-- Authentication and cloud storage
-- Other supporting features
+* Evidence linking
+* Save and resume
+* Cross-paper connections
+* Literature synthesis
+* AI assistance
+* Search and discovery
+* Authentication and cloud storage
+* Other supporting features
 
 This roadmap is intentionally broad. Details should be added only when we are ready to build them.

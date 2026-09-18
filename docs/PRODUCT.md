@@ -22,6 +22,8 @@ The reader can choose how deeply to engage:
 
 These describe attention depth, not difficulty levels.
 
+The reader can also Park for later when the paper does not deserve attention right now. Parking is a deferral decision, not a reading depth.
+
 ## Core reading journey
 
 **Orient → Place → Reconstruct → Appraise → Test → Connect → Judge**
