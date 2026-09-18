@@ -5,16 +5,16 @@
 * Clean foundation
 * Paper entry
 * Triage
-* Surf / Swim / Dive Deep
-* Park for later
+* Surf / Swim / Dive Deep / Shore
+* Focused reading environment
+* Orient and Place stages
+* In-session thinking
 
 ## Now
 
-* Focused reading environment
-* PDF + thinking panel
-* Guided reading journey
-* First stages of active scientific reading
-* Preserve the reader's thinking across stages
+* Bring the actual paper into the reading environment
+* PDF viewing
+* Preserve the reading context while inspecting the paper
 
 ## Later
 

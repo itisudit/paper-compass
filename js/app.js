@@ -5,12 +5,18 @@ const appState = {
   initialInterpretation: "",
   selectedDepth: null,
   decision: null,
+  readingSession: { stage: "orient", responses: { orient: "", place: "" }, stuckReason: "" },
 };
 
+const stages = {
+  orient: { name: "Orient", prompt: "What is this paper trying to establish?" },
+  place: { name: "Place", prompt: "What conversation is this paper entering?" },
+};
 const screens = document.querySelectorAll("[data-screen]");
 const status = document.querySelector("#screen-status");
 const paperForm = document.querySelector("#paper-form");
 const triageForm = document.querySelector("#triage-form");
+const responseField = document.querySelector("#stage-response");
 
 function showScreen(screenName, announcement) {
   screens.forEach((screen) => { screen.hidden = screen.dataset.screen !== screenName; });
@@ -38,14 +44,43 @@ function saveTriageResponses() {
   appState.initialInterpretation = triageForm.elements.interpretation.value.trim();
 }
 
-function showConfirmation(decision) {
-  const parked = decision === "parked";
-  const depthLabel = decision === "dive-deep" ? "Dive Deep" : decision[0].toUpperCase() + decision.slice(1);
-  appState.decision = decision;
-  appState.selectedDepth = parked ? null : decision;
-  document.querySelector("#confirmation-choice").textContent = parked ? "This paper is parked for later." : `${depthLabel} is your chosen reading depth.`;
-  document.querySelector("#confirmation-detail").textContent = parked ? "You have made room to return when the question or timing is right." : "Your paper details and initial orientation are held in this session, ready for the next reading step.";
-  showScreen("confirmation", "Your reading choice has been recorded.");
+function paperMetadata() {
+  return [appState.paper.authors, appState.paper.journal, appState.paper.year].filter(Boolean).join(" · ") || "Details to be added";
+}
+
+function saveStageResponse() {
+  appState.readingSession.responses[appState.readingSession.stage] = responseField.value;
+}
+
+function renderWorkspace() {
+  const { stage } = appState.readingSession;
+  const depth = appState.selectedDepth === "dive-deep" ? "Dive Deep" : appState.selectedDepth[0].toUpperCase() + appState.selectedDepth.slice(1);
+  document.querySelector("#selected-depth").textContent = depth;
+  document.querySelector("#paper-workspace-title").textContent = appState.paper.title;
+  document.querySelector("#paper-metadata").textContent = paperMetadata();
+  document.querySelector("#workspace-title").textContent = stages[stage].name;
+  document.querySelector("#workspace-prompt").textContent = stages[stage].prompt;
+  responseField.value = appState.readingSession.responses[stage];
+  document.querySelectorAll("[data-journey-stage]").forEach((item) => item.classList.toggle("is-current", item.dataset.journeyStage === stage));
+  document.querySelector('[data-action="previous-stage"]').hidden = stage === "orient";
+  document.querySelector('[data-action="continue-stage"]').hidden = stage === "place";
+}
+
+function enterWorkspace(depth) {
+  appState.decision = depth;
+  appState.selectedDepth = depth;
+  appState.readingSession.stage = "orient";
+  renderWorkspace();
+  showScreen("workspace", `${depth === "dive-deep" ? "Dive Deep" : depth[0].toUpperCase() + depth.slice(1)} reading workspace. Orient is ready.`);
+  document.querySelector("#workspace-title").focus();
+}
+
+function showShoreConfirmation() {
+  appState.decision = "shore";
+  appState.selectedDepth = null;
+  document.querySelector("#confirmation-choice").textContent = "This paper is ashore for later.";
+  document.querySelector("#confirmation-detail").textContent = "You have made room to return when the question or timing is right.";
+  showScreen("confirmation", "This paper is ashore for later.");
   document.querySelector("#confirmation-title").focus();
 }
 
@@ -61,8 +96,24 @@ paperForm.addEventListener("submit", (event) => {
   showScreen("triage", "Orient yourself to this paper and choose a reading depth.");
   document.querySelector("#reading-intention").focus();
 });
-
 document.querySelectorAll("[data-depth]").forEach((button) => {
-  button.addEventListener("click", () => { saveTriageResponses(); showConfirmation(button.dataset.depth); });
+  button.addEventListener("click", () => { saveTriageResponses(); enterWorkspace(button.dataset.depth); });
 });
-document.querySelector('[data-action="park"]').addEventListener("click", () => { saveTriageResponses(); showConfirmation("parked"); });
+document.querySelector('[data-action="shore"]').addEventListener("click", () => { saveTriageResponses(); showShoreConfirmation(); });
+document.querySelector('[data-action="continue-stage"]').addEventListener("click", () => {
+  saveStageResponse();
+  appState.readingSession.stage = "place";
+  renderWorkspace();
+  document.querySelector("#workspace-title").focus();
+});
+document.querySelector('[data-action="previous-stage"]').addEventListener("click", () => {
+  saveStageResponse();
+  appState.readingSession.stage = "orient";
+  renderWorkspace();
+  document.querySelector("#workspace-title").focus();
+});
+document.querySelector('[data-action="open-stuck"]').addEventListener("click", () => { document.querySelector("#stuck-panel").hidden = false; document.querySelector("#stuck-title").focus(); });
+document.querySelector('[data-action="close-stuck"]').addEventListener("click", () => { document.querySelector("#stuck-panel").hidden = true; document.querySelector('[data-action="open-stuck"]').focus(); });
+document.querySelectorAll("[data-stuck-reason]").forEach((button) => {
+  button.addEventListener("click", () => { appState.readingSession.stuckReason = button.dataset.stuckReason; document.querySelector("#stuck-panel").hidden = true; document.querySelector('[data-action="open-stuck"]').focus(); });
+});

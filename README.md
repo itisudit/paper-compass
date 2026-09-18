@@ -8,4 +8,4 @@ Open `index.html` directly in a modern web browser. This project is intentionall
 
 ## Current slice
 
-The app supports an opening screen, paper entry, short triage, and an in-memory Surf, Swim, Dive Deep, or Park for later choice. No PDF content is rendered or persisted yet.
+The app supports an opening screen, paper entry, short triage, and an in-memory Surf, Swim, Dive Deep, or Shore choice. No PDF content is rendered or persisted yet.

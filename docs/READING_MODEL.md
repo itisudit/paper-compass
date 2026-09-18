@@ -15,11 +15,23 @@ The reader decides whether to:
 * **Surf** — get the intellectual shape of the paper
 * **Swim** — understand and critically evaluate it
 * **Dive Deep** — thoroughly interrogate it
-* **Park for later** — defer attention until the paper or timing makes it worthwhile
+* **Shore** — defer attention until the paper or timing makes it worthwhile
 
 The reader can move between depths as their interest or needs change.
 
-Parking is a deferral decision, not a depth level.
+Shore is a deferral decision, not a depth level.
+
+## Reading environment
+
+After triage, the reader enters a focused reading environment.
+
+The paper and the reader's thinking remain present together. The reader should be able to inspect the paper, form their own understanding, and record their thinking without losing the context of the reading session.
+
+Paper Compass presents one meaningful intellectual question at a time rather than asking the reader to work through a large checklist.
+
+The reader's responses become part of the developing interpretation of the paper. Earlier thinking should remain available as the reader moves forward and revises their understanding.
+
+The system should guide the reading without determining what the reader should conclude.
 
 ## Reading journey
 

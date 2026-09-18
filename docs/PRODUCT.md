@@ -22,7 +22,17 @@ The reader can choose how deeply to engage:
 
 These describe attention depth, not difficulty levels.
 
-The reader can also Park for later when the paper does not deserve attention right now. Parking is a deferral decision, not a reading depth.
+The reader can also Shore for later when the paper does not deserve attention right now. Shoring is a deferral decision, not a reading depth.
+
+## The reading environment
+
+Once a reader chooses a depth, Paper Compass moves from triage into a focused reading environment.
+
+The paper remains available as the primary source of evidence, while a thinking space guides the reader through the intellectual journey.
+
+The reader encounters one meaningful question at a time and builds their own understanding as they read.
+
+The experience should feel like one continuous reading session rather than a sequence of forms or tasks.
 
 ## Core reading journey
 

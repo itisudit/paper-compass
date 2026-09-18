@@ -56,8 +56,32 @@
               <button class="depth-option" type="button" data-depth="dive-deep"><span class="depth-name">Dive Deep</span><span class="depth-summary">Thoroughly interrogate the paper and its place in the literature.</span><span class="depth-description">For papers that are especially important to your work or questions.</span></button>
             </div>
           </fieldset>
-          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="park-button" type="button" data-action="park">Park for later</button></div>
+          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="shore-button" type="button" data-action="shore">Shore</button></div>
         </form>
+      </section>
+
+      <section class="workspace-screen" data-screen="workspace" hidden aria-labelledby="workspace-title">
+        <header class="workspace-header"><p class="eyebrow">Reading session</p><p class="depth-label" id="selected-depth"></p></header>
+        <nav class="reading-journey" aria-label="Reading journey">
+          <span data-journey-stage="orient">Orient</span><span aria-hidden="true">·</span><span data-journey-stage="place">Place</span><span aria-hidden="true">·</span><span>Reconstruct</span><span aria-hidden="true">·</span><span>Appraise</span><span aria-hidden="true">·</span><span>Test</span><span aria-hidden="true">·</span><span>Connect</span><span aria-hidden="true">·</span><span>Judge</span>
+        </nav>
+        <div class="reading-workspace">
+          <article class="paper-pane" aria-labelledby="paper-workspace-title">
+            <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p></header>
+            <div class="paper-placeholder" aria-label="Paper reader placeholder"><p>Paper reader</p><span>Your paper will appear here when the reader is connected.</span></div>
+          </article>
+          <section class="thinking-pane" aria-labelledby="workspace-title">
+            <p class="eyebrow">Thinking</p><h2 id="workspace-title" tabindex="-1"></h2><p class="workspace-prompt" id="workspace-prompt"></p>
+            <label class="screen-reader-status" for="stage-response">Your response</label><textarea id="stage-response" rows="10" placeholder="Write what you notice, suspect, or want to investigate."></textarea>
+            <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
+            <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
+            <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
+              <h3 id="stuck-title" tabindex="-1">What is getting in the way?</h3>
+              <div class="stuck-options"><button type="button" data-stuck-reason="I don't understand the paper">I don't understand the paper</button><button type="button" data-stuck-reason="I don't understand a concept or method">I don't understand a concept or method</button><button type="button" data-stuck-reason="I don't know what to look for">I don't know what to look for</button><button type="button" data-stuck-reason="Something doesn't make sense">Something doesn't make sense</button></div>
+              <button class="button button-quiet" type="button" data-action="close-stuck">Continue thinking</button>
+            </section>
+          </section>
+        </div>
       </section>
 
       <section class="screen confirmation-screen" data-screen="confirmation" hidden aria-labelledby="confirmation-title">
