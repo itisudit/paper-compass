@@ -34,7 +34,10 @@
           <div class="field-group"><label for="paper-journal">Journal</label><input id="paper-journal" name="journal" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-year">Year</label><input id="paper-year" name="year" type="text" inputmode="numeric" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-doi">DOI <span class="optional">Optional</span></label><input id="paper-doi" name="doi" type="text" autocomplete="off" /></div>
-          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><p class="field-note">Your PDF will not be opened yet.</p></div>
+          <div class="field-group"><label for="paper-volume">Volume <span class="optional">Optional</span></label><input id="paper-volume" name="volume" type="text" autocomplete="off" /></div>
+          <div class="field-group"><label for="paper-issue">Issue <span class="optional">Optional</span></label><input id="paper-issue" name="issue" type="text" autocomplete="off" /></div>
+          <div class="field-group"><label for="paper-pages">Pages <span class="optional">Optional</span></label><input id="paper-pages" name="pages" type="text" autocomplete="off" /></div>
+          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><div class="pdf-details-action"><button class="button button-quiet" type="button" data-action="read-pdf-details" disabled>Read PDF for details</button><p class="field-note" id="metadata-extraction-status" aria-live="polite">Choose a PDF, then read its first two pages for available details.</p></div></div>
           <div class="form-actions"><button class="button button-quiet" type="button" data-action="back-to-opening">Back</button><button class="button button-primary" type="submit">Continue to triage <span aria-hidden="true">→</span></button></div>
         </form>
       </section>

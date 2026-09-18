@@ -14,6 +14,12 @@ PDF + notes helps me record what a paper says.
 
 Paper Compass helps me think through what a paper says and decide what I think about it.
 
+## Paper entry
+
+The reader can upload a paper and have available bibliographic details extracted from the PDF to reduce manual entry.
+
+Extracted details remain editable and should be reviewed by the reader before continuing.
+
 ## Reading depth
 
 The reader can choose how deeply to engage:

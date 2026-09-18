@@ -7,6 +7,7 @@
 .paper-form, .triage-form { display: grid; gap: 1.4rem; padding: clamp(1.5rem, 4vw, 2.5rem); }
 .paper-form { grid-template-columns: 1fr 1fr; }
 .form-actions { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 0.65rem; }
+.pdf-details-action { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
 .triage-form { gap: 2rem; }
 .depth-fieldset { display: grid; gap: 1rem; }
 .depth-options { display: grid; gap: 0.75rem; }

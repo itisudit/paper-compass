@@ -9,12 +9,14 @@
 * Focused reading environment
 * Orient and Place stages
 * In-session thinking
+- Basic stuck interaction
+- PDF reading with navigation, zoom, fit, and rotation
+- PDF metadata extraction during paper entry
 
 ## Now
 
-* Bring the actual paper into the reading environment
-* PDF viewing
-* Preserve the reading context while inspecting the paper
+- Connect reading stages to the paper's evidence
+- Make the reader's thinking traceable to specific parts of the paper
 
 ## Later
 
