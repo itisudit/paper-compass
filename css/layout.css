@@ -15,6 +15,7 @@
 .confirmation-panel { width: min(100%, 40rem); padding: clamp(2rem, 7vw, 4.5rem); }
 .workspace-screen { width: min(100% - 3rem, 90rem); min-height: 100vh; margin: 0 auto; padding: 2rem 0 3rem; }
 .workspace-header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.workspace-header-actions, .opening-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
 .reading-workspace { display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(21rem, 0.82fr); min-height: min(42rem, calc(100vh - 11rem)); border-top: 1px solid var(--soft-line); }
 .paper-pane { padding: 2.5rem clamp(1.5rem, 4vw, 4rem) 2.5rem 0; border-right: 1px solid var(--soft-line); }
 .thinking-pane { padding: 2.5rem 0 2.5rem clamp(1.5rem, 4vw, 4rem); }
@@ -35,8 +36,9 @@
   .depth-options .depth-option { grid-template-columns: 1fr; gap: 0.3rem; }
   .depth-option .depth-name { grid-row: auto; }
   .form-actions.triage-actions { align-items: flex-start; }
-  .triage-actions .park-button { align-self: center; padding: 0.4rem; }
+  .triage-actions .shore-button { align-self: center; padding: 0.4rem; }
   .workspace-screen { width: min(100% - 2.5rem, 36rem); padding: 1.5rem 0 2.5rem; }
+  .workspace-header { align-items: flex-start; }
   .reading-workspace { grid-template-columns: 1fr; }
   .paper-pane { padding: 2rem 0; border-right: 0; border-bottom: 1px solid var(--soft-line); }
   .thinking-pane { padding: 2rem 0; }

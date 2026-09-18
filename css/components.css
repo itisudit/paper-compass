@@ -28,14 +28,17 @@ input[type="file"] { padding: 0.55rem; color: var(--muted-ink); font-size: 0.9re
 .depth-name { grid-row: span 2; color: var(--accent-dark); font-size: 1.25rem; }
 .depth-summary { font-size: 1rem; line-height: 1.4; }
 .depth-description { margin-top: 0.3rem; color: var(--muted-ink); font-size: 0.9rem; line-height: 1.45; }
-.park-button { padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.95rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
-.park-button:hover { color: var(--accent-dark); }
+.shore-button { padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.95rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
+.shore-button:hover { color: var(--accent-dark); }
 .triage-actions { margin-top: -0.25rem; }
 .confirmation-panel { border: 1px solid var(--soft-line); background: var(--panel); }
 .confirmation-choice { margin: 2rem 0 0.75rem; color: var(--accent-dark); font-size: clamp(1.25rem, 3vw, 1.7rem); line-height: 1.35; }
 .confirmation-detail { max-width: 31rem; margin: 0 0 2rem; color: var(--muted-ink); font-size: 1.05rem; line-height: 1.55; }
 .screen-reader-status { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .depth-label { margin: 0; color: var(--muted-ink); font-size: 0.95rem; font-style: italic; }
+.reading-activity { margin: -0.8rem 0 0; color: var(--muted-ink); font-size: 0.95rem; font-style: italic; }
+.leave-workspace { padding: 0; border: 0; color: var(--muted-ink); background: transparent; font: 0.82rem/1 var(--font-sans); text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
+.leave-workspace:hover { color: var(--accent-dark); }
 .reading-journey { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 1.5rem; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; }
 .reading-journey .is-current { color: var(--accent-dark); font-weight: 700; }
 .paper-header h2 { max-width: 44rem; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.05; }
@@ -54,6 +57,11 @@ input[type="file"] { padding: 0.55rem; color: var(--muted-ink); font-size: 0.9re
 .pdf-empty-state span { font-size: 0.92rem; line-height: 1.5; }
 .thinking-pane > h2 { font-size: clamp(2.6rem, 5vw, 4rem); }
 .workspace-prompt { margin: 1.2rem 0 2rem; font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.45; }
+.workspace-context { margin: 1.1rem 0 -0.7rem; color: var(--muted-ink); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
+.reconstruct-stage { display: grid; gap: 1rem; }
+.reconstruct-tools { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.reconstruct-hint { margin: 0; padding: 0.9rem 1rem; border-left: 2px solid var(--accent); color: var(--muted-ink); background: rgba(232, 241, 237, 0.45); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
+#reconstruct-revision { display: grid; gap: 0.55rem; padding-top: 0.5rem; }
 #stage-response { min-height: 15rem; background: rgba(255, 255, 255, 0.45); }
 .stuck-button { margin-top: 1.3rem; padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.88rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
 .stuck-button:hover { color: var(--accent-dark); }

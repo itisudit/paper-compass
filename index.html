@@ -18,7 +18,7 @@
           <h1 id="page-title">Paper<br /><em>Compass</em></h1>
           <p class="introduction">A calmer way to read scientific papers, one that keeps the paper central and your own judgement in the lead.</p>
           <p class="principle">Reduce cognitive load without reducing intellectual load.</p>
-          <button class="button button-primary" type="button" data-action="start">Begin with a paper</button>
+          <div class="opening-actions"><button class="button button-primary" type="button" data-action="start">Begin with a paper</button><button class="button button-quiet" type="button" data-action="resume" hidden>Return to reading</button></div>
         </div>
       </section>
 
@@ -26,7 +26,7 @@
         <div class="workflow-heading">
           <p class="eyebrow">Start with the paper</p>
           <h2 id="paper-entry-title" tabindex="-1">Add a paper</h2>
-          <p>Just enough detail to orient your reading. You can refine it later.</p>
+          <p>Just enough detail to begin. You can refine it later.</p>
         </div>
         <form class="paper-form" id="paper-form">
           <div class="field-group field-group-wide"><label for="paper-title">Paper title <span aria-hidden="true">*</span></label><input id="paper-title" name="title" type="text" autocomplete="off" required /></div>
@@ -37,7 +37,7 @@
           <div class="field-group"><label for="paper-volume">Volume <span class="optional">Optional</span></label><input id="paper-volume" name="volume" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-issue">Issue <span class="optional">Optional</span></label><input id="paper-issue" name="issue" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-pages">Pages <span class="optional">Optional</span></label><input id="paper-pages" name="pages" type="text" autocomplete="off" /></div>
-          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><div class="pdf-details-action"><button class="button button-quiet" type="button" data-action="read-pdf-details" disabled>Read PDF for details</button><p class="field-note" id="metadata-extraction-status" aria-live="polite">Choose a PDF, then read its first two pages for available details.</p></div></div>
+          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><div class="pdf-details-action"><button class="button button-quiet" type="button" data-action="read-pdf-details" disabled>Auto-fill from PDF</button><p class="field-note" id="metadata-extraction-status" aria-live="polite">Choose a PDF, then inspect its first two pages for available details.</p></div></div>
           <div class="form-actions"><button class="button button-quiet" type="button" data-action="back-to-opening">Back</button><button class="button button-primary" type="submit">Continue to triage <span aria-hidden="true">→</span></button></div>
         </form>
       </section>
@@ -46,11 +46,11 @@
         <div class="workflow-heading">
           <p class="eyebrow">A brief orientation</p>
           <h2 id="triage-title" tabindex="-1">How much attention does this paper deserve?</h2>
-          <p>This is not a verdict on the paper. It is a choice about your attention, for now.</p>
+          <p>Find broadly. Choose carefully. Read deeply. For now, decide why this paper is here and how much attention it needs.</p>
         </div>
         <form class="triage-form" id="triage-form">
-          <div class="field-group"><label for="reading-intention">What brought you to this paper?</label><textarea id="reading-intention" name="intention" rows="3"></textarea></div>
-          <div class="field-group"><label for="initial-interpretation">From the title, abstract, or what you already know, what do you think this paper is trying to establish?</label><textarea id="initial-interpretation" name="interpretation" rows="4"></textarea></div>
+          <div class="field-group"><label for="reading-intention">Why are you reading this? <span class="optional">Optional</span></label><textarea id="reading-intention" name="intention" rows="3" placeholder="A question, a recommendation, or a connection to your work."></textarea></div>
+          <div class="field-group"><label for="initial-interpretation">A first hunch, if you have one <span class="optional">Optional</span></label><textarea id="initial-interpretation" name="interpretation" rows="3" placeholder="Something you want to notice or check as you read."></textarea></div>
           <fieldset class="depth-fieldset">
             <legend>Choose the attention you want to give it</legend>
             <div class="depth-options">
@@ -59,15 +59,12 @@
               <button class="depth-option" type="button" data-depth="dive-deep"><span class="depth-name">Dive Deep</span><span class="depth-summary">Thoroughly interrogate the paper and its place in the literature.</span><span class="depth-description">For papers that are especially important to your work or questions.</span></button>
             </div>
           </fieldset>
-          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="park-button" type="button" data-action="shore">Shore</button></div>
+          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="shore-button" type="button" data-action="shore">Shore</button></div>
         </form>
       </section>
 
       <section class="workspace-screen" data-screen="workspace" hidden aria-labelledby="workspace-title">
-        <header class="workspace-header"><p class="eyebrow">Reading session</p><p class="depth-label" id="selected-depth"></p></header>
-        <nav class="reading-journey" aria-label="Reading journey">
-          <span data-journey-stage="orient">Orient</span><span aria-hidden="true">·</span><span data-journey-stage="place">Place</span><span aria-hidden="true">·</span><span>Reconstruct</span><span aria-hidden="true">·</span><span>Appraise</span><span aria-hidden="true">·</span><span>Test</span><span aria-hidden="true">·</span><span>Connect</span><span aria-hidden="true">·</span><span>Judge</span>
-        </nav>
+        <header class="workspace-header"><div><p class="eyebrow">Reading</p><p class="reading-activity" id="reading-activity"></p></div><div class="workspace-header-actions"><p class="depth-label" id="selected-depth"></p><button class="leave-workspace" type="button" data-action="leave-workspace">Leave reading</button></div></header>
         <div class="reading-workspace">
           <article class="paper-pane" aria-labelledby="paper-workspace-title">
             <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p></header>
@@ -95,8 +92,14 @@
             </section>
           </article>
           <section class="thinking-pane" aria-labelledby="workspace-title">
-            <p class="eyebrow">Thinking</p><h2 id="workspace-title" tabindex="-1"></h2><p class="workspace-prompt" id="workspace-prompt"></p>
-            <label class="screen-reader-status" for="stage-response">Your response</label><textarea id="stage-response" rows="10" placeholder="Write what you notice, suspect, or want to investigate."></textarea>
+            <p class="eyebrow">A small prompt</p><h2 id="workspace-title" tabindex="-1"></h2><p class="workspace-context" id="workspace-context" hidden></p><p class="workspace-prompt" id="workspace-prompt"></p>
+            <div id="standard-stage"><label for="stage-response">A note, if you want one <span class="optional">Optional</span></label><textarea id="stage-response" rows="7" placeholder="A few words, a question, or a rough observation."></textarea></div>
+            <section class="reconstruct-stage" id="reconstruct-stage" hidden aria-label="Build your model of the paper">
+              <label for="reconstruct-attempt">Your first sketch</label><textarea id="reconstruct-attempt" rows="7" placeholder="Sketch the path you think the paper takes. This can be incomplete."></textarea>
+              <div class="reconstruct-tools"><button class="button button-quiet" type="button" data-action="show-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-paper">Inspect the paper</button></div>
+              <p class="reconstruct-hint" id="reconstruct-hint" aria-live="polite" tabindex="-1" hidden></p>
+              <div id="reconstruct-revision" hidden><label for="reconstruct-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="reconstruct-revision-text" rows="7" placeholder="What would you now add, change, or connect in your sketch?"></textarea></div>
+            </section>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
