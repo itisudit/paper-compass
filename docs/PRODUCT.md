@@ -28,7 +28,7 @@ The reader can also Shore for later when the paper does not deserve attention ri
 
 Once a reader chooses a depth, Paper Compass moves from triage into a focused reading environment.
 
-The paper remains available as the primary source of evidence, while a thinking space guides the reader through the intellectual journey.
+The paper remains available as the primary source of evidence, while a thinking space guides the reader through the intellectual journey. The reader should be able to inspect the paper without losing their place in their thinking.
 
 The reader encounters one meaningful question at a time and builds their own understanding as they read.
 

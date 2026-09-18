@@ -18,7 +18,10 @@
 .paper-pane { padding: 2.5rem clamp(1.5rem, 4vw, 4rem) 2.5rem 0; border-right: 1px solid var(--soft-line); }
 .thinking-pane { padding: 2.5rem 0 2.5rem clamp(1.5rem, 4vw, 4rem); }
 .paper-header { max-width: 44rem; }
-.paper-placeholder { display: grid; align-content: center; min-height: 28rem; margin-top: 2.5rem; }
+.pdf-viewer { display: grid; min-height: 28rem; margin-top: 2.5rem; }
+.pdf-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; }
+.page-controls, .viewer-controls { display: flex; align-items: center; gap: 0.45rem; }
+.pdf-pages { min-height: 28rem; max-height: calc(100vh - 20rem); overflow: auto; margin-top: 0.75rem; }
 .workspace-actions { display: flex; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
 .stuck-panel { margin-top: 1.2rem; }
 
@@ -31,10 +34,11 @@
   .depth-options .depth-option { grid-template-columns: 1fr; gap: 0.3rem; }
   .depth-option .depth-name { grid-row: auto; }
   .form-actions.triage-actions { align-items: flex-start; }
-  .triage-actions .shore-button { align-self: center; padding: 0.4rem; }
+  .triage-actions .park-button { align-self: center; padding: 0.4rem; }
   .workspace-screen { width: min(100% - 2.5rem, 36rem); padding: 1.5rem 0 2.5rem; }
   .reading-workspace { grid-template-columns: 1fr; }
   .paper-pane { padding: 2rem 0; border-right: 0; border-bottom: 1px solid var(--soft-line); }
   .thinking-pane { padding: 2rem 0; }
-  .paper-placeholder { min-height: 14rem; margin-top: 1.75rem; }
+  .pdf-viewer { min-height: 14rem; margin-top: 1.75rem; }
+  .pdf-pages { min-height: 14rem; max-height: 36rem; }
 }

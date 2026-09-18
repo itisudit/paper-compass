@@ -1,3 +1,5 @@
+import { PdfViewer } from "./pdf-viewer.js";
+
 // In-memory state is kept here until persistent storage is introduced.
 const appState = {
   paper: { title: "", authors: "", journal: "", year: "", doi: "", pdf: null, pdfName: "" },
@@ -17,6 +19,7 @@ const status = document.querySelector("#screen-status");
 const paperForm = document.querySelector("#paper-form");
 const triageForm = document.querySelector("#triage-form");
 const responseField = document.querySelector("#stage-response");
+const pdfViewer = new PdfViewer(document.querySelector(".pdf-viewer"));
 
 function showScreen(screenName, announcement) {
   screens.forEach((screen) => { screen.hidden = screen.dataset.screen !== screenName; });
@@ -72,6 +75,7 @@ function enterWorkspace(depth) {
   appState.readingSession.stage = "orient";
   renderWorkspace();
   showScreen("workspace", `${depth === "dive-deep" ? "Dive Deep" : depth[0].toUpperCase() + depth.slice(1)} reading workspace. Orient is ready.`);
+  pdfViewer.load(appState.paper.pdf);
   document.querySelector("#workspace-title").focus();
 }
 
@@ -116,4 +120,9 @@ document.querySelector('[data-action="open-stuck"]').addEventListener("click", (
 document.querySelector('[data-action="close-stuck"]').addEventListener("click", () => { document.querySelector("#stuck-panel").hidden = true; document.querySelector('[data-action="open-stuck"]').focus(); });
 document.querySelectorAll("[data-stuck-reason]").forEach((button) => {
   button.addEventListener("click", () => { appState.readingSession.stuckReason = button.dataset.stuckReason; document.querySelector("#stuck-panel").hidden = true; document.querySelector('[data-action="open-stuck"]').focus(); });
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || document.querySelector("#stuck-panel").hidden) return;
+  document.querySelector("#stuck-panel").hidden = true;
+  document.querySelector('[data-action="open-stuck"]').focus();
 });

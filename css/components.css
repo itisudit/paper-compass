@@ -27,8 +27,8 @@ input[type="file"] { padding: 0.55rem; color: var(--muted-ink); font-size: 0.9re
 .depth-name { grid-row: span 2; color: var(--accent-dark); font-size: 1.25rem; }
 .depth-summary { font-size: 1rem; line-height: 1.4; }
 .depth-description { margin-top: 0.3rem; color: var(--muted-ink); font-size: 0.9rem; line-height: 1.45; }
-.shore-button { padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.95rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
-.shore-button:hover { color: var(--accent-dark); }
+.park-button { padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.95rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
+.park-button:hover { color: var(--accent-dark); }
 .triage-actions { margin-top: -0.25rem; }
 .confirmation-panel { border: 1px solid var(--soft-line); background: var(--panel); }
 .confirmation-choice { margin: 2rem 0 0.75rem; color: var(--accent-dark); font-size: clamp(1.25rem, 3vw, 1.7rem); line-height: 1.35; }
@@ -39,9 +39,18 @@ input[type="file"] { padding: 0.55rem; color: var(--muted-ink); font-size: 0.9re
 .reading-journey .is-current { color: var(--accent-dark); font-weight: 700; }
 .paper-header h2 { max-width: 44rem; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.05; }
 .paper-metadata { margin: 1rem 0 0; color: var(--muted-ink); line-height: 1.5; }
-.paper-placeholder { padding: 2rem; border: 1px solid var(--soft-line); color: var(--muted-ink); background: rgba(255, 255, 255, 0.2); text-align: center; }
-.paper-placeholder p { margin: 0 0 0.5rem; color: var(--ink); font-size: 1.1rem; }
-.paper-placeholder span { font-size: 0.92rem; line-height: 1.5; }
+.pdf-toolbar { padding: 0.65rem; border: 1px solid var(--soft-line); background: rgba(255, 255, 255, 0.3); font-family: var(--font-sans); font-size: 0.78rem; }
+.pdf-control { display: inline-grid; width: 2rem; height: 2rem; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 0.15rem; color: var(--ink); background: rgba(255, 255, 255, 0.48); font-family: var(--font-sans); font-size: 1.1rem; }
+.pdf-control-reset { width: auto; padding: 0 0.55rem; font-size: 0.72rem; font-weight: 700; }
+.pdf-control:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+.pdf-control:disabled { cursor: not-allowed; opacity: 0.48; }
+#pdf-page-number { width: 3.3rem; min-height: 2rem; padding: 0.25rem; text-align: center; font-family: var(--font-sans); font-size: 0.78rem; }
+.pdf-status { min-height: 1.25rem; margin: 0.5rem 0 0; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.75rem; }
+.pdf-pages { padding: 1rem; border: 1px solid var(--soft-line); background: rgba(226, 224, 217, 0.32); }
+.pdf-page { display: block; max-width: 100%; height: auto; margin: 0 auto 1rem; box-shadow: 0 0.4rem 1rem rgba(29, 41, 42, 0.12); }
+.pdf-empty-state { display: grid; min-height: 22rem; place-content: center; padding: 2rem; color: var(--muted-ink); text-align: center; }
+.pdf-empty-state p { margin: 0 0 0.5rem; color: var(--ink); font-size: 1.1rem; }
+.pdf-empty-state span { font-size: 0.92rem; line-height: 1.5; }
 .thinking-pane > h2 { font-size: clamp(2.6rem, 5vw, 4rem); }
 .workspace-prompt { margin: 1.2rem 0 2rem; font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.45; }
 #stage-response { min-height: 15rem; background: rgba(255, 255, 255, 0.45); }

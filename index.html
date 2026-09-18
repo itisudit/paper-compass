@@ -56,7 +56,7 @@
               <button class="depth-option" type="button" data-depth="dive-deep"><span class="depth-name">Dive Deep</span><span class="depth-summary">Thoroughly interrogate the paper and its place in the literature.</span><span class="depth-description">For papers that are especially important to your work or questions.</span></button>
             </div>
           </fieldset>
-          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="shore-button" type="button" data-action="shore">Shore</button></div>
+          <div class="form-actions triage-actions"><button class="button button-quiet" type="button" data-action="back-to-paper">Back to paper details</button><button class="park-button" type="button" data-action="shore">Shore</button></div>
         </form>
       </section>
 
@@ -68,7 +68,28 @@
         <div class="reading-workspace">
           <article class="paper-pane" aria-labelledby="paper-workspace-title">
             <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p></header>
-            <div class="paper-placeholder" aria-label="Paper reader placeholder"><p>Paper reader</p><span>Your paper will appear here when the reader is connected.</span></div>
+            <section class="pdf-viewer" aria-label="Paper PDF viewer">
+              <div class="pdf-toolbar" aria-label="PDF controls">
+                <div class="page-controls">
+                  <button class="pdf-control" type="button" data-pdf-action="previous" aria-label="Previous page" title="Previous page">‹</button>
+                  <label for="pdf-page-number">Page</label>
+                  <input id="pdf-page-number" type="number" min="1" value="1" inputmode="numeric" />
+                  <span id="pdf-page-total" aria-label="Total pages">of 0</span>
+                  <button class="pdf-control" type="button" data-pdf-action="next" aria-label="Next page" title="Next page">›</button>
+                </div>
+                <div class="viewer-controls">
+                  <button class="pdf-control" type="button" data-pdf-action="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>
+                  <button class="pdf-control pdf-control-reset" type="button" data-pdf-action="fit" aria-label="Reset to fit view" title="Reset to fit view">Fit</button>
+                  <button class="pdf-control" type="button" data-pdf-action="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+                  <button class="pdf-control" type="button" data-pdf-action="rotate-left" aria-label="Rotate counter-clockwise" title="Rotate counter-clockwise">↺</button>
+                  <button class="pdf-control" type="button" data-pdf-action="rotate-right" aria-label="Rotate clockwise" title="Rotate clockwise">↻</button>
+                </div>
+              </div>
+              <p class="pdf-status" id="pdf-status" aria-live="polite"></p>
+              <div class="pdf-pages" id="pdf-pages" tabindex="0" aria-label="PDF pages">
+                <div class="pdf-empty-state" id="pdf-empty-state"><p>No PDF added yet.</p><span>You can still begin thinking about the paper from its title and context.</span></div>
+              </div>
+            </section>
           </article>
           <section class="thinking-pane" aria-labelledby="workspace-title">
             <p class="eyebrow">Thinking</p><h2 id="workspace-title" tabindex="-1"></h2><p class="workspace-prompt" id="workspace-prompt"></p>
@@ -95,6 +116,6 @@
       </section>
     </main>
     <p class="screen-reader-status" id="screen-status" aria-live="polite"></p>
-    <script src="js/app.js"></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>
