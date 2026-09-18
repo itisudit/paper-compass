@@ -1,26 +1,14 @@
 :root {
-  --color-ink: #25231f;
-  --color-muted: #716c63;
-  --color-paper: #f7f3eb;
-  --color-paper-deep: #eee8dc;
-  --color-surface: #fffdf8;
-  --color-accent: #8a5a3b;
-  --color-accent-dark: #6f452d;
-  --color-line: #d9d1c4;
-
-  --font-body: Georgia, "Times New Roman", serif;
-  --font-ui: Arial, Helvetica, sans-serif;
-
-  --space-1: 0.5rem;
-  --space-2: 0.75rem;
-  --space-3: 1rem;
-  --space-4: 1.5rem;
-  --space-5: 2rem;
-  --space-6: 3rem;
-  --space-7: 4rem;
-
-  --radius-sm: 0.4rem;
-  --radius-md: 0.7rem;
-
-  --content-width: 1100px;
+  color-scheme: light;
+  --ink: #1d292a;
+  --muted-ink: #526362;
+  --paper: #f6f4ed;
+  --paper-deep: #eae5d9;
+  --panel: rgba(255, 255, 252, 0.48);
+  --accent: #386b65;
+  --accent-dark: #28504c;
+  --line: rgba(29, 41, 42, 0.16);
+  --soft-line: rgba(29, 41, 42, 0.1);
+  --font-serif: Georgia, "Times New Roman", serif;
+  --font-sans: Arial, sans-serif;
 }

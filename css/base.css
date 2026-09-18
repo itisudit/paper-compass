@@ -1,38 +1,14 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  min-height: 100%;
-}
+* { box-sizing: border-box; }
 
 body {
-  margin: 0;
+  min-width: 320px;
   min-height: 100vh;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-body);
-  line-height: 1.6;
+  margin: 0;
+  color: var(--ink);
+  background: radial-gradient(circle at 80% 18%, rgba(102, 146, 135, 0.16), transparent 28rem), linear-gradient(135deg, var(--paper) 0%, #f8f7f2 52%, var(--paper-deep) 100%);
+  font-family: var(--font-serif);
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-a {
-  color: inherit;
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(56, 107, 101, 0.35); outline-offset: 3px; }

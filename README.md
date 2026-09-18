@@ -1,20 +1,11 @@
 # Paper Compass
 
-Paper Compass is a focused environment for reading scientific papers deeply, critically, and actively.
-
-It is designed to help readers engage deeply, fundamentally, and thoroughly with a paper without losing interest.
-
-## Status
-
-Early clean rebuild.
+Paper Compass is a calm, focused space for engaging thoughtfully with scientific papers.
 
 ## Run locally
 
-For now, open `index.html` in a browser.
+Open `index.html` directly in a modern web browser. This project is intentionally dependency-free.
 
-## Structure
+## Current slice
 
-- `docs/` — product and design notes
-- `css/` — styles
-- `js/` — application code
-- `tests/` — testing notes
+The app supports an opening screen, paper entry, short triage, and an in-memory Surf, Swim, Dive Deep, or Park for later choice. No PDF content is rendered or persisted yet.
