@@ -58,10 +58,10 @@ input[type="file"] { padding: 0.55rem; color: var(--muted-ink); font-size: 0.9re
 .thinking-pane > h2 { font-size: clamp(2.6rem, 5vw, 4rem); }
 .workspace-prompt { margin: 1.2rem 0 2rem; font-size: clamp(1.2rem, 2vw, 1.5rem); line-height: 1.45; }
 .workspace-context { margin: 1.1rem 0 -0.7rem; color: var(--muted-ink); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
-.reconstruct-stage, .appraise-stage { display: grid; gap: 1rem; }
-.reconstruct-tools, .appraise-tools { display: flex; flex-wrap: wrap; gap: 0.7rem; }
-.reconstruct-hint, .appraise-hint { margin: 0; padding: 0.9rem 1rem; border-left: 2px solid var(--accent); color: var(--muted-ink); background: rgba(232, 241, 237, 0.45); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
-#reconstruct-revision, #appraise-revision { display: grid; gap: 0.55rem; padding-top: 0.5rem; }
+.reconstruct-stage, .appraise-stage, .test-stage { display: grid; gap: 1rem; }
+.reconstruct-tools, .appraise-tools, .test-tools { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.reconstruct-hint, .appraise-hint, .test-hint { margin: 0; padding: 0.9rem 1rem; border-left: 2px solid var(--accent); color: var(--muted-ink); background: rgba(232, 241, 237, 0.45); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
+#reconstruct-revision, #appraise-revision, #test-revision { display: grid; gap: 0.55rem; padding-top: 0.5rem; }
 #stage-response { min-height: 15rem; background: rgba(255, 255, 255, 0.45); }
 .stuck-button { margin-top: 1.3rem; padding: 0; border: 0; color: var(--muted-ink); background: transparent; font-size: 0.88rem; text-decoration: underline; text-decoration-color: rgba(82, 99, 98, 0.4); text-underline-offset: 0.25rem; }
 .stuck-button:hover { color: var(--accent-dark); }

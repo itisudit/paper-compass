@@ -106,6 +106,12 @@
               <p class="appraise-hint" id="appraise-hint" aria-live="polite" tabindex="-1" hidden></p>
               <div id="appraise-revision" hidden><label for="appraise-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="appraise-revision-text" rows="7" placeholder="What now seems supported, uncertain, or outside the approach's reach?"></textarea></div>
             </section>
+            <section class="test-stage" id="test-stage" hidden aria-label="Read the paper's evidence">
+              <label for="test-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="test-attempt" rows="7" placeholder="Write a provisional note about what the evidence itself establishes."></textarea>
+              <div class="test-tools"><button class="button button-quiet" type="button" data-action="show-test-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-test-paper">Inspect the paper</button></div>
+              <p class="test-hint" id="test-hint" aria-live="polite" tabindex="-1" hidden></p>
+              <div id="test-revision" hidden><label for="test-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="test-revision-text" rows="7" placeholder="What does the result show now, and what remains outside it?"></textarea></div>
+            </section>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">

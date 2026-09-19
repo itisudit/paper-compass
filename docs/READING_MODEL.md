@@ -12,14 +12,50 @@ Triage is about allocating attention, not judging the quality of the paper.
 
 The reader decides whether to:
 
-* **Surf** — get the intellectual shape of the paper
-* **Swim** — understand and critically evaluate it
-* **Dive Deep** — thoroughly interrogate it
-* **Shore** — defer attention until the paper or timing makes it worthwhile
+- Surf — get the intellectual shape of the paper
+- Swim — understand the reasoning and evidence
+- Dive Deep — interrogate the paper and form a considered judgement
+- Shore — defer attention until the paper or timing makes it worthwhile
 
-The reader can move between depths as their interest or needs change.
+These are attention depths, not difficulty levels. The reader can move between them as their interest or needs change.
 
 Shore is a deferral decision, not a depth level.
+
+## Reading sequences
+
+The same intellectual journey is approached at different depths.
+
++ ## Depth philosophy
++
++ Surf, Swim, and Dive Deep are different ways of engaging with the same intellectual journey, not levels defined by the number of questions or tasks.
++
++ Surf supports selective attention and orientation.
++
++ Swim supports active understanding through questioning, prediction, inspection, comparison, and revision.
++
++ Dive Deep supports sustained scientific interrogation, reconstruction, critical appraisal, connection, and independent judgement.
++
++ The interaction should reduce the cognitive effort required to begin and sustain serious thinking without reducing the intellectual demands of the reading.
+
+### Surf
+
+Orient → Place → Reconstruct
+
+The goal is to understand the basic shape of the paper: what it is trying to establish, where it fits, and how it gets from its question to its conclusion.
+
+### Swim
+
+Orient → Place → Reconstruct → Appraise → Test
+
+The goal is to understand how the paper's reasoning and evidence support its claims.
+
+### Dive Deep
+
+Orient → Place → Reconstruct → Appraise → Test → Connect → Judge
+
+The goal is to thoroughly interrogate the paper, connect it to wider knowledge, and form an independent judgement.
+
+The sequences are guides rather than rigid checklists. Depth determines which stages are included and how much scaffolding and attention each stage receives.
 
 ## Reading environment
 
