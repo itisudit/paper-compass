@@ -100,6 +100,12 @@
               <p class="reconstruct-hint" id="reconstruct-hint" aria-live="polite" tabindex="-1" hidden></p>
               <div id="reconstruct-revision" hidden><label for="reconstruct-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="reconstruct-revision-text" rows="7" placeholder="What would you now add, change, or connect in your sketch?"></textarea></div>
             </section>
+            <section class="appraise-stage" id="appraise-stage" hidden aria-label="Examine the paper's approach">
+              <label for="appraise-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="appraise-attempt" rows="7" placeholder="Write a provisional note about what the approach can support."></textarea>
+              <div class="appraise-tools"><button class="button button-quiet" type="button" data-action="show-appraise-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-appraise-paper">Inspect the paper</button></div>
+              <p class="appraise-hint" id="appraise-hint" aria-live="polite" tabindex="-1" hidden></p>
+              <div id="appraise-revision" hidden><label for="appraise-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="appraise-revision-text" rows="7" placeholder="What now seems supported, uncertain, or outside the approach's reach?"></textarea></div>
+            </section>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
