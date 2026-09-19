@@ -112,6 +112,12 @@
               <p class="test-hint" id="test-hint" aria-live="polite" tabindex="-1" hidden></p>
               <div id="test-revision" hidden><label for="test-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="test-revision-text" rows="7" placeholder="What does the result show now, and what remains outside it?"></textarea></div>
             </section>
+            <section class="connect-stage" id="connect-stage" hidden aria-label="Relate the paper to what you know">
+              <label for="connect-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="connect-attempt" rows="7" placeholder="Write a provisional connection to what you already know or expected."></textarea>
+              <div class="connect-tools"><button class="button button-quiet" type="button" data-action="show-connect-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-connect-paper">Inspect the paper</button></div>
+              <p class="connect-hint" id="connect-hint" aria-live="polite" tabindex="-1" hidden></p>
+              <div id="connect-revision" hidden><label for="connect-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="connect-revision-text" rows="7" placeholder="What connection, tension, or question seems clearer now?"></textarea></div>
+            </section>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">

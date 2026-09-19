@@ -14,6 +14,7 @@ const appState = {
     reconstruct: { attempt: "", revision: "", hintLevel: 0, inspected: false },
     appraise: { attempt: "", revision: "", hintLevel: 0, inspected: false },
     test: { attempt: "", revision: "", hintLevel: 0, inspected: false },
+    connect: { attempt: "", revision: "", hintLevel: 0, inspected: false },
     stuckReason: "",
   },
 };
@@ -29,6 +30,7 @@ const readingActivities = {
     reconstruct: { activity: "Map the route" },
     appraise: { activity: "Look at the approach" },
     test: { activity: "Find the evidence" },
+    connect: { activity: "Make a connection" },
   },
   swim: {
     orient: { activity: "Find the question", title: "Read for the question.", context: "Start with the abstract and introduction. Stay with the paper before you try to state its answer.", prompt: "Notice what the authors are trying to find out and why it matters. You are only locating the question for now." },
@@ -36,6 +38,7 @@ const readingActivities = {
     reconstruct: { activity: "Trace the argument" },
     appraise: { activity: "Question the approach" },
     test: { activity: "Read the evidence" },
+    connect: { activity: "Compare and connect" },
   },
   "dive-deep": {
     orient: { activity: "Find the claim", title: "Read for the claim and its stakes.", context: "Begin with the abstract, introduction, and conclusion. Let the paper state its own ambition first.", prompt: "Notice what the authors say is at stake and what they want the evidence to establish. Do not judge it yet." },
@@ -43,6 +46,7 @@ const readingActivities = {
     reconstruct: { activity: "Rebuild the reasoning" },
     appraise: { activity: "Probe the inference" },
     test: { activity: "Test the evidence" },
+    connect: { activity: "Place the paper" },
   },
 };
 const reconstructTasks = {
@@ -94,6 +98,23 @@ const testTasks = {
     context: "Read the result before accepting the explanation placed around it. These are lenses, not boxes to complete.",
     task: "Follow one central result. What exactly do the authors claim it shows, what does the result itself tell you, what else could it fit, and what can you not conclude from it?",
     hints: ["Begin by separating the result on the page from the conclusion drawn from it.", "What does the displayed result show in its own terms? What other explanation could still fit that pattern?", "Inspect the central figure, table, or estimate with its caption and nearby results text. Notice the comparison, uncertainty, variation, and where the evidence stops."],
+  },
+};
+const connectTasks = {
+  surf: {
+    context: "Keep this light. Start with one idea that meets something already familiar to you.",
+    task: "What idea from this paper connects to something you already know?",
+    hints: ["Begin with the idea that stayed with you most clearly.", "Where have you seen a similar question, finding, or explanation before?", "Inspect the abstract, conclusion, or central result again. Notice which part most readily connects with your own knowledge."],
+  },
+  swim: {
+    context: "Compare the paper with what you expected before you started reading it.",
+    task: "Does this paper support, extend, or challenge what you expected?",
+    hints: ["Name one expectation you brought to the paper.", "Does the paper leave that expectation intact, add something to it, or put pressure on it?", "Inspect the conclusion and the result you treated as central. Compare the paper's actual claim with the expectation you started with."],
+  },
+  "dive-deep": {
+    context: "Place the paper against your own understanding. These are lenses, not boxes to complete.",
+    task: "What does this paper add to what you already know? Does it change, refine, or complicate your understanding? Notice any tension, then name the next question it leaves you with.",
+    hints: ["Begin with one idea you held before reading this paper.", "What is genuinely new here, and does it change your view or make it less simple? Is there a point that does not fit?", "Inspect the paper's central claim, result, and conclusion together. Notice what they add to your understanding and what question remains open for you."],
   },
 };
 const screens = document.querySelectorAll("[data-screen]");
@@ -193,6 +214,11 @@ function saveTestResponses() {
   appState.readingSession.test.revision = document.querySelector("#test-revision-text").value;
 }
 
+function saveConnectResponses() {
+  appState.readingSession.connect.attempt = document.querySelector("#connect-attempt").value;
+  appState.readingSession.connect.revision = document.querySelector("#connect-revision-text").value;
+}
+
 function renderWorkspace() {
   const { stage } = appState.readingSession;
   const depth = appState.selectedDepth === "dive-deep" ? "Dive Deep" : appState.selectedDepth[0].toUpperCase() + appState.selectedDepth.slice(1);
@@ -215,6 +241,7 @@ function renderWorkspace() {
     document.querySelector("#reconstruct-stage").hidden = false;
     document.querySelector("#appraise-stage").hidden = true;
     document.querySelector("#test-stage").hidden = true;
+    document.querySelector("#connect-stage").hidden = true;
     document.querySelector("#reconstruct-attempt").value = reconstruction.attempt;
     document.querySelector("#reconstruct-revision-text").value = reconstruction.revision;
     document.querySelector("#reconstruct-revision").hidden = !reconstruction.inspected;
@@ -235,6 +262,7 @@ function renderWorkspace() {
     document.querySelector("#reconstruct-stage").hidden = true;
     document.querySelector("#appraise-stage").hidden = false;
     document.querySelector("#test-stage").hidden = true;
+    document.querySelector("#connect-stage").hidden = true;
     document.querySelector("#appraise-attempt").value = appraisal.attempt;
     document.querySelector("#appraise-revision-text").value = appraisal.revision;
     document.querySelector("#appraise-revision").hidden = !appraisal.inspected;
@@ -255,12 +283,34 @@ function renderWorkspace() {
     document.querySelector("#reconstruct-stage").hidden = true;
     document.querySelector("#appraise-stage").hidden = true;
     document.querySelector("#test-stage").hidden = false;
+    document.querySelector("#connect-stage").hidden = true;
     document.querySelector("#test-attempt").value = evidenceTest.attempt;
     document.querySelector("#test-revision-text").value = evidenceTest.revision;
     document.querySelector("#test-revision").hidden = !evidenceTest.inspected;
     const hint = document.querySelector("#test-hint");
     hint.hidden = evidenceTest.hintLevel === 0;
     hint.textContent = evidenceTest.hintLevel ? mode.hints[evidenceTest.hintLevel - 1] : "";
+    previousButton.hidden = false;
+    continueButton.hidden = false;
+    continueButton.innerHTML = 'Make a connection <span aria-hidden="true">→</span>';
+  } else if (stage === "connect") {
+    const mode = connectTasks[appState.selectedDepth];
+    const connection = appState.readingSession.connect;
+    document.querySelector("#workspace-title").textContent = appState.selectedDepth === "surf" ? "What does this connect to?" : appState.selectedDepth === "swim" ? "How does this meet what you expected?" : "What does this change in your understanding?";
+    context.hidden = false;
+    context.textContent = mode.context;
+    document.querySelector("#workspace-prompt").textContent = mode.task;
+    document.querySelector("#standard-stage").hidden = true;
+    document.querySelector("#reconstruct-stage").hidden = true;
+    document.querySelector("#appraise-stage").hidden = true;
+    document.querySelector("#test-stage").hidden = true;
+    document.querySelector("#connect-stage").hidden = false;
+    document.querySelector("#connect-attempt").value = connection.attempt;
+    document.querySelector("#connect-revision-text").value = connection.revision;
+    document.querySelector("#connect-revision").hidden = !connection.inspected;
+    const hint = document.querySelector("#connect-hint");
+    hint.hidden = connection.hintLevel === 0;
+    hint.textContent = connection.hintLevel ? mode.hints[connection.hintLevel - 1] : "";
     previousButton.hidden = false;
     continueButton.hidden = true;
   } else {
@@ -273,6 +323,7 @@ function renderWorkspace() {
     document.querySelector("#reconstruct-stage").hidden = true;
     document.querySelector("#appraise-stage").hidden = true;
     document.querySelector("#test-stage").hidden = true;
+    document.querySelector("#connect-stage").hidden = true;
     previousButton.hidden = stage === "orient";
     continueButton.hidden = false;
     continueButton.innerHTML = 'Continue <span aria-hidden="true">→</span>';
@@ -319,6 +370,7 @@ document.querySelector('[data-action="leave-workspace"]').addEventListener("clic
   if (appState.readingSession.stage === "reconstruct") saveReconstructResponses();
   else if (appState.readingSession.stage === "appraise") saveAppraiseResponses();
   else if (appState.readingSession.stage === "test") saveTestResponses();
+  else if (appState.readingSession.stage === "connect") saveConnectResponses();
   else saveStageResponse();
   document.querySelector('[data-action="resume"]').hidden = false;
   showScreen("opening", "Reading paused. Your notes remain available in this session.");
@@ -328,11 +380,13 @@ document.querySelector('[data-action="continue-stage"]').addEventListener("click
   const { stage } = appState.readingSession;
   if (stage === "reconstruct") saveReconstructResponses();
   else if (stage === "appraise") saveAppraiseResponses();
+  else if (stage === "test") saveTestResponses();
   else saveStageResponse();
   if (stage === "orient") appState.readingSession.stage = "place";
   else if (stage === "place") appState.readingSession.stage = "reconstruct";
   else if (stage === "reconstruct") appState.readingSession.stage = "appraise";
   else if (stage === "appraise") appState.readingSession.stage = "test";
+  else if (stage === "test") appState.readingSession.stage = "connect";
   renderWorkspace();
   document.querySelector("#workspace-title").focus();
 });
@@ -340,11 +394,13 @@ document.querySelector('[data-action="previous-stage"]').addEventListener("click
   if (appState.readingSession.stage === "reconstruct") saveReconstructResponses();
   else if (appState.readingSession.stage === "appraise") saveAppraiseResponses();
   else if (appState.readingSession.stage === "test") saveTestResponses();
+  else if (appState.readingSession.stage === "connect") saveConnectResponses();
   else saveStageResponse();
   if (appState.readingSession.stage === "place") appState.readingSession.stage = "orient";
   else if (appState.readingSession.stage === "reconstruct") appState.readingSession.stage = "place";
   else if (appState.readingSession.stage === "appraise") appState.readingSession.stage = "reconstruct";
   else if (appState.readingSession.stage === "test") appState.readingSession.stage = "appraise";
+  else if (appState.readingSession.stage === "connect") appState.readingSession.stage = "test";
   renderWorkspace();
   document.querySelector("#workspace-title").focus();
 });
@@ -384,6 +440,19 @@ document.querySelector('[data-action="show-test-hint"]').addEventListener("click
 document.querySelector('[data-action="inspect-test-paper"]').addEventListener("click", () => {
   saveTestResponses();
   appState.readingSession.test.inspected = true;
+  renderWorkspace();
+  document.querySelector("#pdf-pages").focus();
+});
+document.querySelector('[data-action="show-connect-hint"]').addEventListener("click", () => {
+  const connection = appState.readingSession.connect;
+  saveConnectResponses();
+  connection.hintLevel = Math.min(connection.hintLevel + 1, 3);
+  renderWorkspace();
+  document.querySelector("#connect-hint").focus();
+});
+document.querySelector('[data-action="inspect-connect-paper"]').addEventListener("click", () => {
+  saveConnectResponses();
+  appState.readingSession.connect.inspected = true;
   renderWorkspace();
   document.querySelector("#pdf-pages").focus();
 });
