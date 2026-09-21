@@ -118,6 +118,18 @@
               <p class="connect-hint" id="connect-hint" aria-live="polite" tabindex="-1" hidden></p>
               <div id="connect-revision" hidden><label for="connect-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="connect-revision-text" rows="7" placeholder="What connection, tension, or question seems clearer now?"></textarea></div>
             </section>
+            <section class="judge-stage" id="judge-stage" hidden aria-label="Reach your own conclusion">
+              <div class="earlier-thinking" id="judge-earlier-thinking">
+                <h3>Your earlier thinking</h3>
+                <div><p class="earlier-label">Your first hunch</p><p class="earlier-text" id="judge-hunch"></p></div>
+                <div id="judge-latest-block" hidden><p class="earlier-label">Your latest note</p><p class="earlier-text" id="judge-latest"></p></div>
+              </div>
+              <div class="field-group" data-judge-field="establishes"><label for="judge-establishes">What do you think this paper has actually established?</label><textarea id="judge-establishes" rows="4" placeholder="In your own words, not the authors'."></textarea></div>
+              <div class="field-group" data-judge-field="uncertain"><label for="judge-uncertain">What are you still not convinced about?</label><textarea id="judge-uncertain" rows="4" placeholder="Anything that still feels unsettled, unsupported, or out of reach."></textarea></div>
+              <div class="field-group" data-judge-field="changed"><label for="judge-changed">What changed in your understanding while reading this paper?</label><textarea id="judge-changed" rows="4" placeholder="Compare where you started with where you are now. Nothing needs to have changed."></textarea></div>
+              <div class="field-group" data-judge-field="revise"><label for="judge-revise">What evidence or finding would make you revise your conclusion?</label><textarea id="judge-revise" rows="4" placeholder="What would you need to see to think differently?"></textarea></div>
+              <div class="field-group judge-verdict"><label for="judge-judgement">Your judgement</label><p class="field-note" id="judge-judgement-prompt"></p><textarea id="judge-judgement" rows="7" placeholder="Your conclusion, in your own words."></textarea></div>
+            </section>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
