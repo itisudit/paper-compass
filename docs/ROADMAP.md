@@ -12,6 +12,7 @@
 - Basic stuck interaction
 - PDF reading with navigation, zoom, fit, and rotation
 - PDF metadata extraction during paper entry
+- Modular reading workspace architecture
 
 ## Now
 

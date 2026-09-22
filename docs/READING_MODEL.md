@@ -37,17 +37,21 @@ The same intellectual journey is approached at different depths.
 +
 + The interaction should reduce the cognitive effort required to begin and sustain serious thinking without reducing the intellectual demands of the reading.
 
+## Reading sequences
+
+The same intellectual journey is approached at different depths.
+
 ### Surf
 
-Orient → Place → Reconstruct
+Orient → Place → Judge
 
-The goal is to understand the basic shape of the paper: what it is trying to establish, where it fits, and how it gets from its question to its conclusion.
+The goal is to get the paper's basic shape and decide whether it is worth deeper attention.
 
 ### Swim
 
-Orient → Place → Reconstruct → Appraise → Test
+Orient → Place → Reconstruct → Appraise → Test → Judge
 
-The goal is to understand how the paper's reasoning and evidence support its claims.
+The goal is to understand the paper's reasoning and evidence and form a considered conclusion.
 
 ### Dive Deep
 
@@ -55,7 +59,7 @@ Orient → Place → Reconstruct → Appraise → Test → Connect → Judge
 
 The goal is to thoroughly interrogate the paper, connect it to wider knowledge, and form an independent judgement.
 
-The sequences are guides rather than rigid checklists. Depth determines which stages are included and how much scaffolding and attention each stage receives.
+The routes are guides rather than rigid checklists. Depth determines which stages the reader encounters and how much attention and scaffolding each stage receives.
 
 ## Reading environment
 

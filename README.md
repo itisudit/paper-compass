@@ -4,8 +4,20 @@ Paper Compass is a calm, focused space for engaging thoughtfully with scientific
 
 ## Run locally
 
-Open `index.html` directly in a modern web browser. This project is intentionally dependency-free.
+Serve the project over HTTP, for example:
+
+```text
+python -m http.server 8000
+```
+
+Then open `http://localhost:8000`.
+
+The project uses a pinned PDF.js build loaded from a CDN.
 
 ## Current slice
 
-The app supports an opening screen, paper entry, short triage, and an in-memory Surf, Swim, Dive Deep, or Shore choice. No PDF content is rendered or persisted yet.
+The app supports paper entry, reading triage, PDF reading, and a focused reading journey across Surf, Swim, Dive Deep, and Shore.
+
+The reading workspace guides the reader through the stages appropriate to their chosen depth, with in-session thinking, optional hints, PDF inspection, revision, and a final independent judgement.
+
+Reading state is currently in memory and is not persisted between sessions.
