@@ -1,0 +1,8 @@
+/* One stylesheet per reading stage, so each stage can change its look without touching the others. */
+@import url("stages/orient.css");
+@import url("stages/place.css");
+@import url("stages/reconstruct.css");
+@import url("stages/appraise.css");
+@import url("stages/test.css");
+@import url("stages/connect.css");
+@import url("stages/judge.css");

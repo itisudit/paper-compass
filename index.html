@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/stages.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -29,6 +30,7 @@
           <p>Just enough detail to begin. You can refine it later.</p>
         </div>
         <form class="paper-form" id="paper-form">
+          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><p class="field-note" id="metadata-extraction-status" aria-live="polite">Details are read from the first two pages when you choose a file.</p></div>
           <div class="field-group field-group-wide"><label for="paper-title">Paper title <span aria-hidden="true">*</span></label><input id="paper-title" name="title" type="text" autocomplete="off" required /></div>
           <div class="field-group"><label for="paper-authors">Authors</label><input id="paper-authors" name="authors" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-journal">Journal</label><input id="paper-journal" name="journal" type="text" autocomplete="off" /></div>
@@ -37,7 +39,6 @@
           <div class="field-group"><label for="paper-volume">Volume <span class="optional">Optional</span></label><input id="paper-volume" name="volume" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-issue">Issue <span class="optional">Optional</span></label><input id="paper-issue" name="issue" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-pages">Pages <span class="optional">Optional</span></label><input id="paper-pages" name="pages" type="text" autocomplete="off" /></div>
-          <div class="field-group field-group-wide"><label for="paper-pdf">PDF <span class="optional">Optional</span></label><input id="paper-pdf" name="pdf" type="file" accept="application/pdf" /><div class="pdf-details-action"><button class="button button-quiet" type="button" data-action="read-pdf-details" disabled>Auto-fill from PDF</button><p class="field-note" id="metadata-extraction-status" aria-live="polite">Choose a PDF, then inspect its first two pages for available details.</p></div></div>
           <div class="form-actions"><button class="button button-quiet" type="button" data-action="back-to-opening">Back</button><button class="button button-primary" type="submit">Continue to triage <span aria-hidden="true">→</span></button></div>
         </form>
       </section>
@@ -63,11 +64,11 @@
         </form>
       </section>
 
-      <section class="workspace-screen" data-screen="workspace" hidden aria-labelledby="workspace-title">
-        <header class="workspace-header"><div><p class="eyebrow">Reading</p><p class="reading-activity" id="reading-activity"></p></div><div class="workspace-header-actions"><p class="depth-label" id="selected-depth"></p><button class="leave-workspace" type="button" data-action="leave-workspace">Leave reading</button></div></header>
+      <section class="workspace-screen" data-screen="workspace" hidden aria-labelledby="paper-workspace-title">
+        <header class="workspace-header"><div><p class="eyebrow">Reading</p><p class="reading-activity" id="reading-activity"></p><ol class="progress-steps" id="progress-steps" aria-label="Reading progress"></ol></div><div class="workspace-header-actions"><p class="depth-label" id="selected-depth"></p><button class="leave-workspace" type="button" data-action="leave-workspace">Leave reading</button></div></header>
         <div class="reading-workspace">
           <article class="paper-pane" aria-labelledby="paper-workspace-title">
-            <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p></header>
+            <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p><p class="paper-intention" id="paper-intention" hidden></p></header>
             <section class="pdf-viewer" aria-label="Paper PDF viewer">
               <div class="pdf-toolbar" aria-label="PDF controls">
                 <div class="page-controls">
@@ -91,50 +92,14 @@
               </div>
             </section>
           </article>
-          <section class="thinking-pane" aria-labelledby="workspace-title">
-            <p class="eyebrow">A small prompt</p><h2 id="workspace-title" tabindex="-1"></h2><p class="workspace-context" id="workspace-context" hidden></p><p class="workspace-prompt" id="workspace-prompt"></p>
-            <div id="standard-stage"><label for="stage-response">A note, if you want one <span class="optional">Optional</span></label><textarea id="stage-response" rows="7" placeholder="A few words, a question, or a rough observation."></textarea></div>
-            <section class="reconstruct-stage" id="reconstruct-stage" hidden aria-label="Build your model of the paper">
-              <label for="reconstruct-attempt">Your first sketch</label><textarea id="reconstruct-attempt" rows="7" placeholder="Sketch the path you think the paper takes. This can be incomplete."></textarea>
-              <div class="reconstruct-tools"><button class="button button-quiet" type="button" data-action="show-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-paper">Inspect the paper</button></div>
-              <p class="reconstruct-hint" id="reconstruct-hint" aria-live="polite" tabindex="-1" hidden></p>
-              <div id="reconstruct-revision" hidden><label for="reconstruct-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="reconstruct-revision-text" rows="7" placeholder="What would you now add, change, or connect in your sketch?"></textarea></div>
-            </section>
-            <section class="appraise-stage" id="appraise-stage" hidden aria-label="Examine the paper's approach">
-              <label for="appraise-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="appraise-attempt" rows="7" placeholder="Write a provisional note about what the approach can support."></textarea>
-              <div class="appraise-tools"><button class="button button-quiet" type="button" data-action="show-appraise-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-appraise-paper">Inspect the paper</button></div>
-              <p class="appraise-hint" id="appraise-hint" aria-live="polite" tabindex="-1" hidden></p>
-              <div id="appraise-revision" hidden><label for="appraise-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="appraise-revision-text" rows="7" placeholder="What now seems supported, uncertain, or outside the approach's reach?"></textarea></div>
-            </section>
-            <section class="test-stage" id="test-stage" hidden aria-label="Read the paper's evidence">
-              <label for="test-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="test-attempt" rows="7" placeholder="Write a provisional note about what the evidence itself establishes."></textarea>
-              <div class="test-tools"><button class="button button-quiet" type="button" data-action="show-test-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-test-paper">Inspect the paper</button></div>
-              <p class="test-hint" id="test-hint" aria-live="polite" tabindex="-1" hidden></p>
-              <div id="test-revision" hidden><label for="test-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="test-revision-text" rows="7" placeholder="What does the result show now, and what remains outside it?"></textarea></div>
-            </section>
-            <section class="connect-stage" id="connect-stage" hidden aria-label="Relate the paper to what you know">
-              <label for="connect-attempt">Your reading note <span class="optional">Optional</span></label><textarea id="connect-attempt" rows="7" placeholder="Write a provisional connection to what you already know or expected."></textarea>
-              <div class="connect-tools"><button class="button button-quiet" type="button" data-action="show-connect-hint">Hint</button><button class="button button-quiet" type="button" data-action="inspect-connect-paper">Inspect the paper</button></div>
-              <p class="connect-hint" id="connect-hint" aria-live="polite" tabindex="-1" hidden></p>
-              <div id="connect-revision" hidden><label for="connect-revision-text">Revise after inspection <span class="optional">Optional</span></label><textarea id="connect-revision-text" rows="7" placeholder="What connection, tension, or question seems clearer now?"></textarea></div>
-            </section>
-            <section class="judge-stage" id="judge-stage" hidden aria-label="Reach your own conclusion">
-              <div class="earlier-thinking" id="judge-earlier-thinking">
-                <h3>Your earlier thinking</h3>
-                <div><p class="earlier-label">Your first hunch</p><p class="earlier-text" id="judge-hunch"></p></div>
-                <div id="judge-latest-block" hidden><p class="earlier-label">Your latest note</p><p class="earlier-text" id="judge-latest"></p></div>
-              </div>
-              <div class="field-group" data-judge-field="establishes"><label for="judge-establishes">What do you think this paper has actually established?</label><textarea id="judge-establishes" rows="4" placeholder="In your own words, not the authors'."></textarea></div>
-              <div class="field-group" data-judge-field="uncertain"><label for="judge-uncertain">What are you still not convinced about?</label><textarea id="judge-uncertain" rows="4" placeholder="Anything that still feels unsettled, unsupported, or out of reach."></textarea></div>
-              <div class="field-group" data-judge-field="changed"><label for="judge-changed">What changed in your understanding while reading this paper?</label><textarea id="judge-changed" rows="4" placeholder="Compare where you started with where you are now. Nothing needs to have changed."></textarea></div>
-              <div class="field-group" data-judge-field="revise"><label for="judge-revise">What evidence or finding would make you revise your conclusion?</label><textarea id="judge-revise" rows="4" placeholder="What would you need to see to think differently?"></textarea></div>
-              <div class="field-group judge-verdict"><label for="judge-judgement">Your judgement</label><p class="field-note" id="judge-judgement-prompt"></p><textarea id="judge-judgement" rows="7" placeholder="Your conclusion, in your own words."></textarea></div>
-            </section>
+          <section class="thinking-pane" aria-label="Your thinking">
+            <div id="stage-panels"></div>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
               <h3 id="stuck-title" tabindex="-1">What is getting in the way?</h3>
               <div class="stuck-options"><button type="button" data-stuck-reason="I don't understand the paper">I don't understand the paper</button><button type="button" data-stuck-reason="I don't understand a concept or method">I don't understand a concept or method</button><button type="button" data-stuck-reason="I don't know what to look for">I don't know what to look for</button><button type="button" data-stuck-reason="Something doesn't make sense">Something doesn't make sense</button></div>
+              <p class="stuck-response" id="stuck-response" tabindex="-1" role="status" hidden></p>
               <button class="button button-quiet" type="button" data-action="close-stuck">Continue thinking</button>
             </section>
           </section>
@@ -147,7 +112,7 @@
           <h2 id="confirmation-title" tabindex="-1">A considered starting point.</h2>
           <p class="confirmation-choice" id="confirmation-choice"></p>
           <p class="confirmation-detail" id="confirmation-detail"></p>
-          <button class="button button-quiet" type="button" data-action="review-triage">Review triage</button>
+          <div class="confirmation-actions"><button class="button button-quiet" type="button" data-action="review-triage">Review triage</button><button class="button button-quiet" type="button" data-action="return-to-start">Return to the start</button></div>
         </div>
       </section>
     </main>

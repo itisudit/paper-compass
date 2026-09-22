@@ -12,7 +12,9 @@ body {
 
 button, input, textarea { font: inherit; }
 button { cursor: pointer; }
-button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid rgba(56, 107, 101, 0.35); outline-offset: 3px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex="0"]:focus-visible { outline: 3px solid rgba(56, 107, 101, 0.35); outline-offset: 3px; }
+/* Headings and panels that receive focus from script when the reader moves on are not controls, so they carry no ring. */
+[tabindex="-1"]:focus { outline: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

@@ -23,7 +23,8 @@ function findTitle(lines) {
 function findAuthors(lines, title) {
   const titleIndex = lines.findIndex((line) => line.text === title);
   const candidates = lines.slice(Math.max(titleIndex + 1, 0), Math.max(titleIndex + 5, 5));
-  return candidates.find(({ text }) => text.length < 180 && /[A-Z][a-z]+/.test(text) && /(?:,|\band\b|\b[A-Z]\.)/.test(text) && !/\b(?:abstract|department|university|doi)\b/i.test(text))?.text || "";
+  const repeatsTitle = (text) => Boolean(title) && (text === title || title.includes(text) || text.includes(title));
+  return candidates.find(({ text }) => !repeatsTitle(text) && text.length < 180 && /[A-Z][a-z]+/.test(text) && /(?:,|\band\b|\b[A-Z]\.)/.test(text) && !/\b(?:abstract|department|university|doi)\b/i.test(text))?.text || "";
 }
 
 function firstMatch(text, expression) {
@@ -44,7 +45,8 @@ function findPublicationYear(lines) {
 export async function extractPdfMetadata(file) {
   if (!file) return { fields: {}, hasText: false };
   const data = new Uint8Array(await file.arrayBuffer());
-  const document = await pdfjsLib.getDocument({ data }).promise;
+  const loadingTask = pdfjsLib.getDocument({ data });
+  const document = await loadingTask.promise;
   try {
     const metadata = await document.getMetadata().catch(() => ({ info: {} }));
     const pages = await Promise.all(
@@ -75,6 +77,6 @@ export async function extractPdfMetadata(file) {
       },
     };
   } finally {
-    document.destroy?.();
+    loadingTask.destroy();
   }
 }

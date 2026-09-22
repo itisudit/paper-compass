@@ -1,0 +1,17 @@
+.judge-stage { display: grid; gap: 1.4rem; }
+.judge-stage textarea { min-height: 7rem; background: rgba(255, 255, 255, 0.45); }
+.earlier-thinking { display: grid; gap: 0.9rem; padding: 0.2rem 0 0.2rem 1.1rem; border-left: 2px solid var(--line); }
+.earlier-thinking h3 { margin: 0; color: var(--muted-ink); font: 700 0.72rem/1 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; }
+.earlier-label { margin: 0 0 0.25rem; color: var(--muted-ink); font-size: 0.84rem; font-style: italic; }
+.earlier-text { margin: 0; color: var(--ink); font-size: 0.98rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.earlier-text.is-empty { color: var(--muted-ink); font-style: italic; }
+.judge-verdict { margin-top: 0.6rem; padding-top: 1.6rem; border-top: 1px solid var(--line); }
+.judge-verdict label { font-size: 1.35rem; }
+#judge-judgement { min-height: 11rem; }
+.judge-further { display: grid; gap: 0.7rem; padding-top: 0.4rem; }
+.judge-further-lead { margin: 0; color: var(--muted-ink); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
+.judge-further-options { display: grid; gap: 0.6rem; }
+.judge-further-option { display: grid; grid-template-columns: minmax(5.5rem, 0.28fr) 1fr; column-gap: 1rem; align-items: baseline; width: 100%; padding: 0.85rem 1rem; border: 1px solid var(--line); border-radius: 0.2rem; color: var(--ink); background: rgba(255, 255, 255, 0.36); text-align: left; transition: border-color 160ms ease, background-color 160ms ease; }
+.judge-further-option:hover { border-color: var(--accent); background: rgba(232, 241, 237, 0.58); }
+.judge-further-name { color: var(--accent-dark); font-size: 1.05rem; }
+.judge-further-summary { font-size: 0.92rem; line-height: 1.4; }

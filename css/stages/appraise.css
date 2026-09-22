@@ -1,0 +1,5 @@
+.appraise-stage { display: grid; gap: 1rem; }
+.appraise-tools { display: flex; flex-wrap: wrap; gap: 0.7rem; }
+.appraise-hint { margin: 0; padding: 0.9rem 1rem; border-left: 2px solid var(--accent); color: var(--muted-ink); background: rgba(232, 241, 237, 0.45); font-size: 0.95rem; font-style: italic; line-height: 1.5; }
+.appraise-hint-count { display: block; margin-bottom: 0.2rem; font: 700 0.7rem/1.2 var(--font-sans); font-style: normal; letter-spacing: 0.08em; text-transform: uppercase; }
+.appraise-revision { display: grid; gap: 0.55rem; padding-top: 0.5rem; }
