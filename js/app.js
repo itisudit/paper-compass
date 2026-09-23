@@ -99,7 +99,7 @@ function showShoreConfirmation() {
 async function readPdfDetails(file) {
   extractionStatus.textContent = "Reading the first two pages for details.";
   try {
-    const { fields, hasText } = await extractPdfMetadata(file);
+    const { fields, hasText, uncertainFields } = await extractPdfMetadata(file);
     if (pdfInput.files[0] !== file) return;
     if (!hasText) {
       extractionStatus.textContent = "No extractable text was found in the first two pages. You can enter details manually.";
@@ -111,7 +111,17 @@ async function readPdfDetails(file) {
       field.value = value;
       return true;
     }).map(([key]) => key);
-    extractionStatus.textContent = updated.length ? `Details were read from the PDF. Please review the ${updated.join(", ")} field${updated.length === 1 ? "" : "s"}.` : "The first two pages were read, but no blank fields had clear details to add. Please review the form.";
+    let message = updated.length
+      ? `Details were read from the PDF. Please review the ${updated.join(", ")} field${updated.length === 1 ? "" : "s"}.`
+      : "The first two pages were read, but no blank fields had clear details to add. Please review the form.";
+    // Fields the extractor could not fill with confidence, and that the reader has not already
+    // typed in themselves, are worth calling out separately so a blank field reads as "checked
+    // and uncertain" rather than "not looked at".
+    const stillUncertain = (uncertainFields || []).filter((key) => !paperForm.elements.namedItem(key)?.value.trim());
+    if (stillUncertain.length) {
+      message += ` The ${stillUncertain.join(", ")} field${stillUncertain.length === 1 ? "" : "s"} could not be read with confidence and ${stillUncertain.length === 1 ? "was" : "were"} left blank for manual entry.`;
+    }
+    extractionStatus.textContent = message;
   } catch (error) {
     if (pdfInput.files[0] !== file) return;
     extractionStatus.textContent = "These PDF details could not be read. You can enter them manually.";
