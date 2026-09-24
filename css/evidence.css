@@ -1,0 +1,136 @@
+/* evidence.css — Step 10: evidence panel in the thinking pane */
+
+.evidence-section {
+  margin-top: 2rem;
+  padding-top: 1.6rem;
+  border-top: 1px solid var(--soft-line);
+}
+
+.evidence-heading {
+  margin: 0 0 1rem;
+  color: var(--muted-ink);
+  font: 700 0.72rem/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.evidence-empty {
+  margin: 0;
+  color: var(--muted-ink);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.evidence-empty em {
+  font-style: normal;
+  color: var(--accent-dark);
+}
+
+/* Individual evidence card */
+.evidence-card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 1rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 252, 0.42);
+}
+
+.evidence-quote {
+  margin: 0;
+  padding: 0 0 0 0.75rem;
+  border-left: 2px solid var(--accent);
+  color: var(--ink);
+  font-size: 0.92rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.evidence-meta {
+  margin: 0;
+  color: var(--muted-ink);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+}
+
+.evidence-connections {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.evidence-connect-label {
+  margin: 0;
+  color: var(--muted-ink);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+}
+
+.evidence-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.evidence-chip {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  transition: border-color 120ms ease, background-color 120ms ease, color 120ms ease;
+}
+
+.evidence-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.evidence-chip:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
+
+.evidence-chip.is-connected {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: rgba(56, 107, 101, 0.1);
+  font-weight: 600;
+}
+
+.evidence-chip.is-connected:hover {
+  background: rgba(56, 107, 101, 0.18);
+}
+
+.evidence-remove {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(82, 99, 98, 0.35);
+  text-underline-offset: 0.2rem;
+}
+
+.evidence-remove:hover {
+  color: var(--accent-dark);
+}
+
+.evidence-remove:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
+
+/* On mobile collapse section below thinking */
+@media (max-width: 640px) {
+  .evidence-section {
+    margin-top: 1.5rem;
+    padding-top: 1.2rem;
+  }
+}

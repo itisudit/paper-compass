@@ -1,10 +1,14 @@
 // Application wiring: opening, paper entry, triage, and moving into the reading workspace.
 // Stage behaviour lives in js/stages/, and the workspace shell lives in workspace.js.
+// Step 10 adds: SelectionMenu, annotation callbacks, evidence panel wiring.
 import { PdfViewer } from "./pdf-viewer.js";
 import { extractPdfMetadata } from "./metadata-extractor.js";
 import { appState, createReadingSession, readingInProgress, resetAppState } from "./state.js";
 import { depthLabel } from "./depths.js";
 import { initWorkspace } from "./workspace.js";
+import { setSession, addAnnotation, removeAnnotation, addEvidence } from "./annotations.js";
+import { SelectionMenu } from "./selection-menu.js";
+import { initEvidencePanel, renderEvidencePanel } from "./evidence-panel.js";
 
 const screens = document.querySelectorAll("[data-screen]");
 const status = document.querySelector("#screen-status");
@@ -18,6 +22,83 @@ const pdfViewer = new PdfViewer(document.querySelector(".pdf-viewer"));
 const workspace = initWorkspace();
 const extractionPrompt = extractionStatus.textContent;
 
+// Evidence panel container lives in the thinking pane
+const evidencePanelContainer = document.querySelector("#evidence-panel");
+
+// ---- Selection menu setup ----
+
+const selectionMenu = new SelectionMenu({
+  onHighlight: ({ range, text, color }) => {
+    const pageNumber = pdfViewer._pageNumberForNode(range.startContainer);
+    const rects = computeRects(range, pageNumber);
+    if (!rects) return;
+    const ann = addAnnotation({ pageNumber, type: "highlight", color, text, rects });
+    pdfViewer.refreshAnnotations(pageNumber);
+    renderEvidencePanel();
+  },
+  onUnderline: ({ range, text }) => {
+    const pageNumber = pdfViewer._pageNumberForNode(range.startContainer);
+    const rects = computeRects(range, pageNumber);
+    if (!rects) return;
+    addAnnotation({ pageNumber, type: "underline", color: null, text, rects });
+    pdfViewer.refreshAnnotations(pageNumber);
+    renderEvidencePanel();
+  },
+  onEvidence: ({ range, text }) => {
+    const pageNumber = pdfViewer._pageNumberForNode(range.startContainer);
+    // Create evidence without requiring a highlight/underline
+    addEvidence({ annotationId: null, text, pageNumber });
+    renderEvidencePanel();
+  },
+});
+
+// Convert a selection range to fractional rects relative to the canvas display dimensions.
+function computeRects(range, pageNumber) {
+  const wrapper = pdfViewer.wrapperForPage(pageNumber);
+  if (!wrapper) return null;
+  const canvas = wrapper.querySelector(".pdf-page");
+  if (!canvas) return null;
+  const canvasBounds = canvas.getBoundingClientRect();
+  if (!canvasBounds.width || !canvasBounds.height) return null;
+
+  const clientRects = Array.from(range.getClientRects()).filter((r) => r.width > 1 && r.height > 1);
+  const rects = [];
+  const SLACK = 12;
+  for (const cr of clientRects) {
+    if (
+      cr.right < canvasBounds.left - SLACK ||
+      cr.left > canvasBounds.right + SLACK ||
+      cr.bottom < canvasBounds.top - SLACK ||
+      cr.top > canvasBounds.bottom + SLACK
+    ) continue;
+    // Store as fraction of the canvas display dimensions (independent of devicePixelRatio)
+    const lx = cr.left - canvasBounds.left;
+    const ly = cr.top - canvasBounds.top;
+    rects.push({
+      x: lx / canvasBounds.width,
+      y: ly / canvasBounds.height,
+      w: cr.width / canvasBounds.width,
+      h: cr.height / canvasBounds.height,
+    });
+  }
+  return rects.length ? rects : null;
+}
+
+// Wire up the viewer's selection hook to show the menu
+pdfViewer.onSelectionChange = (range, text, pageNumber) => {
+  if (!text) return;
+  selectionMenu.show(range, text);
+};
+
+// Wire up annotation remove callback
+pdfViewer.onAnnotationRemove = (annotationId, pageNumber) => {
+  removeAnnotation(annotationId);
+  pdfViewer.refreshAnnotations(pageNumber);
+  renderEvidencePanel();
+};
+
+// ---- Screen management ----
+
 function showScreen(screenName, announcement) {
   screens.forEach((screen) => { screen.hidden = screen.dataset.screen !== screenName; });
   status.textContent = announcement;
@@ -27,7 +108,6 @@ function showOpening(announcement) {
   const inProgress = readingInProgress();
   resumeButton.hidden = !inProgress;
   startButton.textContent = inProgress ? "Start a different paper" : "Begin with a paper";
-  // With a reading under way, returning to it is the main action.
   startButton.classList.toggle("button-primary", !inProgress);
   startButton.classList.toggle("button-quiet", inProgress);
   resumeButton.classList.toggle("button-primary", inProgress);
@@ -64,6 +144,9 @@ function clearForNewPaper() {
   triageForm.reset();
   extractionStatus.textContent = extractionPrompt;
   pdfViewer.load(null);
+  // Rebind annotation session state to the fresh session
+  setSession(appState.readingSession);
+  renderEvidencePanel();
 }
 
 function startNewPaper() {
@@ -75,15 +158,18 @@ function startNewPaper() {
   pdfInput.focus();
 }
 
-// Choosing a depth begins a fresh reading session for the paper just described.
 function enterWorkspace(depth) {
   appState.decision = depth;
   appState.selectedDepth = depth;
   appState.readingSession = createReadingSession();
+  // Bind annotation module to the new session
+  setSession(appState.readingSession);
   workspace.render();
   showScreen("workspace", `${depthLabel(depth)} reading is ready.`);
   pdfViewer.load(appState.paper.pdf);
   workspace.focusStageTitle();
+  // Initialise evidence panel now that the depth/path is known
+  initEvidencePanel(evidencePanelContainer, { onChanged: () => {} });
 }
 
 function showShoreConfirmation() {
@@ -114,9 +200,6 @@ async function readPdfDetails(file) {
     let message = updated.length
       ? `Details were read from the PDF. Please review the ${updated.join(", ")} field${updated.length === 1 ? "" : "s"}.`
       : "The first two pages were read, but no blank fields had clear details to add. Please review the form.";
-    // Fields the extractor could not fill with confidence, and that the reader has not already
-    // typed in themselves, are worth calling out separately so a blank field reads as "checked
-    // and uncertain" rather than "not looked at".
     const stillUncertain = (uncertainFields || []).filter((key) => !paperForm.elements.namedItem(key)?.value.trim());
     if (stillUncertain.length) {
       message += ` The ${stillUncertain.join(", ")} field${stillUncertain.length === 1 ? "" : "s"} could not be read with confidence and ${stillUncertain.length === 1 ? "was" : "were"} left blank for manual entry.`;
@@ -128,6 +211,8 @@ async function readPdfDetails(file) {
     console.error("Paper Compass metadata extraction error:", error);
   }
 }
+
+// ---- Event bindings ----
 
 pdfInput.addEventListener("change", () => {
   const file = pdfInput.files[0];
@@ -141,6 +226,9 @@ resumeButton.addEventListener("click", () => {
   showScreen("workspace", "Reading resumed.");
   pdfViewer.refit();
   workspace.focusStageTitle();
+  // Re-bind session (annotations survive leave/return)
+  setSession(appState.readingSession);
+  renderEvidencePanel();
 });
 document.querySelector('[data-action="back-to-opening"]').addEventListener("click", () => showOpening("Paper Compass opening screen."));
 document.querySelector('[data-action="back-to-paper"]').addEventListener("click", () => { saveTriageResponses(); populatePaperForm(); showScreen("paper-entry", "Paper details."); });
@@ -164,9 +252,11 @@ document.querySelector('[data-action="leave-workspace"]').addEventListener("clic
   resumeButton.focus();
 });
 
-// Notes live in memory only for now, so warn before a refresh or close would discard a reading in progress.
 window.addEventListener("beforeunload", (event) => {
   if (!readingInProgress()) return;
   event.preventDefault();
   event.returnValue = "";
 });
+
+// Initialise annotation session binding on startup
+setSession(appState.readingSession);

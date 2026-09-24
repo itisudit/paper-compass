@@ -15,6 +15,9 @@ export function createReadingSession() {
     stage: "orient",
     stuck: [],
     stages: Object.fromEntries(Object.values(stageModules).map((stage) => [stage.id, stage.initialState()])),
+    // Step 10: annotation and evidence state, centralised in the reading session.
+    annotations: [],  // [{id, pageNumber, type, color, text, rects}]
+    evidence: [],     // [{id, annotationId, text, pageNumber, connections}]
   };
 }
 

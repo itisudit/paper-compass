@@ -1,4 +1,20 @@
+// pdf-viewer.js — Paper Compass PDF viewer with text selection and annotation support.
+// Step 10: adds PDF.js text layer, SVG annotation overlay, and hooks for selection menu.
+//
+// Architecture notes:
+//   • Each page is wrapped in .pdf-page-wrapper (position:relative) containing:
+//       <canvas class="pdf-page">          — rendered page bitmap
+//       <div class="pdf-text-layer">       — PDF.js text layer (selectable text)
+//       <svg class="pdf-annotation-layer"> — highlight/underline marks
+//   • Annotation rects are stored as fractions of the canvas display size so they
+//     survive zoom, rotate, and fit by simply being redrawn in renderAnnotationOverlay.
+//   • The text layer is rebuilt whenever a page is (re-)painted, keeping it aligned.
+//   • The viewer fires onSelectionChange(range, text, pageNumber) when the reader
+//     finishes selecting text inside the PDF pane.
+
 import { pdfjsLib } from "./pdfjs.js";
+import { getAnnotationsForPage } from "./annotations.js";
+import { HIGHLIGHT_COLORS } from "./text-layer.js";
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
@@ -6,8 +22,6 @@ const ZOOM_STEP = 0.2;
 const DEFAULT_SCALE = 1.15;
 const MAX_PIXEL_RATIO = 2;
 
-// Pages are laid out as sized canvases straight away and painted only when they come near the view,
-// so a long paper opens quickly and zooming does not repaint pages the reader is not looking at.
 export class PdfViewer {
   constructor(root) {
     this.root = root;
@@ -28,11 +42,18 @@ export class PdfViewer {
     this.loadVersion = 0;
     this.layoutVersion = 0;
     this.observer = null;
-    this.views = new Map();
+    this.views = new Map();            // canvas → {page, viewport, ratio}
+    this.wrappers = new Map();         // pageNumber → wrapper div
     this.renderTasks = new Set();
+    this.textLayerTasks = new Set();
     this.scrollFrame = 0;
     this.resizeTimer = 0;
+    // Callback set by app: (range, text, pageNumber) => void
+    this.onSelectionChange = null;
+    // Callback to refresh annotation overlays (set by app after session is ready)
+    this.onAnnotationRemove = null;
     this.bindControls();
+    this.bindSelection();
     this.setControlsEnabled(false);
     this.showEmptyState();
   }
@@ -61,6 +82,64 @@ export class PdfViewer {
       clearTimeout(this.resizeTimer);
       this.resizeTimer = setTimeout(() => this.refit(), 150);
     });
+  }
+
+  bindSelection() {
+    // Listen for mouseup/pointerup inside the pages element and fire onSelectionChange
+    this.pagesElement.addEventListener("pointerup", () => {
+      // Small delay so the browser finalises the selection
+      setTimeout(() => {
+        const sel = window.getSelection();
+        if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+        if (!this._selectionInPdfPages(sel)) return;
+        const range = sel.getRangeAt(0);
+        const text = sel.toString().trim();
+        // Determine which page the selection starts on
+        const pageNumber = this._pageNumberForNode(range.startContainer);
+        if (this.onSelectionChange) this.onSelectionChange(range, text, pageNumber);
+      }, 10);
+    });
+  }
+
+  _selectionInPdfPages(sel) {
+    if (!sel.rangeCount) return false;
+    const range = sel.getRangeAt(0);
+    return this.pagesElement.contains(range.commonAncestorContainer);
+  }
+
+  _pageNumberForNode(node) {
+    let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    while (el && el !== this.pagesElement) {
+      if (el.dataset && el.dataset.pageNumber) return Number(el.dataset.pageNumber);
+      el = el.parentElement;
+    }
+    return this.currentPage;
+  }
+
+  // Returns the wrapper and canvas for a given pageNumber
+  wrapperForPage(pageNumber) {
+    return this.wrappers.get(pageNumber) || null;
+  }
+
+  // Called by the annotation system after adding/removing an annotation to repaint the overlay.
+  refreshAnnotations(pageNumber) {
+    const wrapper = this.wrappers.get(pageNumber);
+    if (!wrapper) return;
+    const canvas = wrapper.querySelector(".pdf-page");
+    const view = this.views.get(canvas);
+    if (!view) return;
+    renderAnnotationOverlay(wrapper, pageNumber, this.scale, view.viewport, view.page, this.onAnnotationRemove || (() => {}));
+  }
+
+  // Repaint all annotation overlays — used after zoom/rotate/fit.
+  refreshAllAnnotations() {
+    for (const [pageNumber, wrapper] of this.wrappers) {
+      const canvas = wrapper.querySelector(".pdf-page");
+      const view = this.views.get(canvas);
+      if (view) {
+        renderAnnotationOverlay(wrapper, pageNumber, this.scale, view.viewport, view.page, this.onAnnotationRemove || (() => {}));
+      }
+    }
   }
 
   async load(file) {
@@ -111,7 +190,6 @@ export class PdfViewer {
 
   teardown() {
     this.clearPages();
-    // In pdf.js the loading task owns the document and its worker, so it is what gets destroyed.
     this.loadingTask?.destroy();
     this.loadingTask = null;
     this.document = null;
@@ -139,19 +217,25 @@ export class PdfViewer {
     this.observer = null;
     this.renderTasks.forEach((task) => task.cancel());
     this.renderTasks.clear();
+    // Cancel any in-flight text layer tasks
+    this.textLayerTasks.forEach((task) => { try { task.cancel?.(); } catch(_) {} });
+    this.textLayerTasks.clear();
     this.views.clear();
-    this.pagesElement.querySelectorAll(".pdf-page").forEach((page) => page.remove());
+    this.wrappers.clear();
+    this.pagesElement.querySelectorAll(".pdf-page-wrapper").forEach((w) => w.remove());
+    // Also remove any bare canvases from previous version without wrappers
+    this.pagesElement.querySelectorAll(".pdf-page").forEach((c) => c.remove());
   }
 
-  // Distance from the top of the scroll area to the top of a page, measured inside the scroll area.
   pageTop(page) {
     return page.offsetTop - parseFloat(getComputedStyle(this.pagesElement).paddingTop || "0");
   }
 
   captureAnchor() {
-    const page = this.pagesElement.querySelector(`[data-page-number="${this.currentPage}"]`);
-    if (!page || !page.offsetHeight) return { page: this.currentPage, fraction: 0 };
-    return { page: this.currentPage, fraction: (this.pagesElement.scrollTop - this.pageTop(page)) / page.offsetHeight };
+    // Look in wrappers first (step 10), fall back to canvas
+    const wrapperEl = this.pagesElement.querySelector(`[data-page-number="${this.currentPage}"]`);
+    if (!wrapperEl || !wrapperEl.offsetHeight) return { page: this.currentPage, fraction: 0 };
+    return { page: this.currentPage, fraction: (this.pagesElement.scrollTop - this.pageTop(wrapperEl)) / wrapperEl.offsetHeight };
   }
 
   restoreAnchor({ page, fraction }) {
@@ -166,32 +250,54 @@ export class PdfViewer {
     this.clearPages();
     const ratio = Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
     const fragment = document.createDocumentFragment();
-    const canvases = this.pdfPages.map((page, index) => {
+    const wrappers = this.pdfPages.map((page, index) => {
+      const pageNumber = index + 1;
       const viewport = page.getViewport({ scale: this.scale, rotation: this.rotation });
+
+      // Wrapper div — carries data-page-number for scroll tracking & anchor
+      const wrapper = document.createElement("div");
+      wrapper.className = "pdf-page-wrapper";
+      wrapper.dataset.pageNumber = String(pageNumber);
+      wrapper.style.width = `${Math.floor(viewport.width)}px`;
+      wrapper.style.height = `${Math.floor(viewport.height)}px`;
+      wrapper.style.margin = "0 auto 1rem";
+      wrapper.style.position = "relative";
+
       const canvas = document.createElement("canvas");
       canvas.width = Math.floor(viewport.width * ratio);
       canvas.height = Math.floor(viewport.height * ratio);
       canvas.style.width = `${Math.floor(viewport.width)}px`;
       canvas.className = "pdf-page";
-      canvas.dataset.pageNumber = String(index + 1);
-      canvas.setAttribute("aria-label", `PDF page ${index + 1}`);
+      canvas.setAttribute("aria-label", `PDF page ${pageNumber}`);
+
+      wrapper.append(canvas);
       this.views.set(canvas, { page, viewport, ratio });
-      fragment.append(canvas);
-      return canvas;
+      this.wrappers.set(pageNumber, wrapper);
+      fragment.append(wrapper);
+      return wrapper;
     });
     this.pagesElement.append(fragment);
+
     this.observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => { if (entry.isIntersecting) this.paintPage(entry.target, version); });
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const wrapper = entry.target;
+          const canvas = wrapper.querySelector(".pdf-page");
+          if (canvas) this.paintPage(canvas, version, wrapper);
+        }
+      });
     }, { root: this.pagesElement, rootMargin: "100% 0px" });
-    canvases.forEach((canvas) => this.observer.observe(canvas));
+    wrappers.forEach((w) => this.observer.observe(w));
     this.restoreAnchor(anchor);
   }
 
-  async paintPage(canvas, version) {
+  async paintPage(canvas, version, wrapper) {
     const view = this.views.get(canvas);
     if (!view || canvas.dataset.painted || version !== this.layoutVersion) return;
     canvas.dataset.painted = "true";
     const { page, viewport, ratio } = view;
+    const pageNumber = Number(wrapper.dataset.pageNumber);
+
     const task = page.render({
       canvasContext: canvas.getContext("2d", { alpha: false }),
       viewport,
@@ -200,10 +306,45 @@ export class PdfViewer {
     this.renderTasks.add(task);
     try {
       await task.promise;
+      if (version !== this.layoutVersion) return;
+      // Build text layer after canvas renders
+      await this._buildTextLayer(wrapper, page, viewport, version);
+      if (version !== this.layoutVersion) return;
+      // Draw annotation overlay
+      const onRemove = this.onAnnotationRemove || (() => {});
+      renderAnnotationOverlay(wrapper, pageNumber, this.scale, viewport, page, onRemove);
     } catch (error) {
       if (error?.name !== "RenderingCancelledException") console.error("Paper Compass PDF page error:", error);
     } finally {
       this.renderTasks.delete(task);
+    }
+  }
+
+  async _buildTextLayer(wrapper, pdfPage, viewport, layoutVersion) {
+    // Remove stale text layer
+    wrapper.querySelector(".pdf-text-layer")?.remove();
+
+    const div = document.createElement("div");
+    div.className = "pdf-text-layer";
+    div.style.width = `${Math.floor(viewport.width)}px`;
+    div.style.height = `${Math.floor(viewport.height)}px`;
+    wrapper.append(div);
+
+    try {
+      const textContent = await pdfPage.getTextContent();
+      if (layoutVersion !== this.layoutVersion) return;
+      const renderTask = pdfjsLib.renderTextLayer({
+        textContentSource: textContent,
+        container: div,
+        viewport,
+      });
+      this.textLayerTasks.add(renderTask);
+      await renderTask.promise;
+      this.textLayerTasks.delete(renderTask);
+    } catch (err) {
+      if (err?.name !== "RenderingCancelledException") {
+        console.warn("Paper Compass text layer:", err);
+      }
     }
   }
 
@@ -221,9 +362,9 @@ export class PdfViewer {
     if (!this.document) return;
     const marker = this.pagesElement.scrollTop + this.pagesElement.clientHeight * 0.3;
     let current = 1;
-    for (const page of this.pagesElement.querySelectorAll(".pdf-page")) {
-      if (this.pageTop(page) > marker) break;
-      current = Number(page.dataset.pageNumber);
+    for (const wrapper of this.pagesElement.querySelectorAll(".pdf-page-wrapper")) {
+      if (this.pageTop(wrapper) > marker) break;
+      current = Number(wrapper.dataset.pageNumber);
     }
     this.currentPage = current;
     this.pageInput.value = String(current);
@@ -253,7 +394,6 @@ export class PdfViewer {
     if (announce) this.setStatus("Fit view applied.");
   }
 
-  // Keeps the page filling the pane after a resize or after the workspace is shown again.
   refit() {
     if (this.document && this.autoFit && this.pagesElement.clientWidth) this.fitView(false);
   }
@@ -267,4 +407,93 @@ export class PdfViewer {
   }
 
   setStatus(message) { this.statusElement.textContent = message; }
+}
+
+// ---- Annotation overlay renderer (local to this module) ----
+// Draws an SVG overlay on top of the page wrapper showing all annotations for that page.
+
+function renderAnnotationOverlay(wrapper, pageNumber, scale, viewport, pdfPage, onRemove) {
+  let svg = wrapper.querySelector(".pdf-annotation-layer");
+  if (!svg) {
+    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("pdf-annotation-layer");
+    svg.setAttribute("aria-hidden", "true");
+    // Insert before text layer so clicks pass through to text
+    const textLayer = wrapper.querySelector(".pdf-text-layer");
+    if (textLayer) wrapper.insertBefore(svg, textLayer);
+    else wrapper.append(svg);
+  }
+
+  const displayW = Math.floor(viewport.width);
+  const displayH = Math.floor(viewport.height);
+  svg.style.width = `${displayW}px`;
+  svg.style.height = `${displayH}px`;
+  svg.setAttribute("viewBox", `0 0 ${displayW} ${displayH}`);
+  svg.innerHTML = "";
+
+  const anns = getAnnotationsForPage(pageNumber);
+  for (const ann of anns) {
+    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    group.dataset.annotationId = ann.id;
+    group.setAttribute("aria-label", `${ann.type === "highlight" ? "Highlight" : "Underline"}: ${ann.text.slice(0, 60)}`);
+
+    for (const rect of ann.rects) {
+      // rect values are fractions of the display canvas dimensions when stored.
+      // Since we stored them as fraction of (displayW × displayH) at annotation time,
+      // multiply back out using current dimensions.
+      const px = rect.x * displayW;
+      const py = rect.y * displayH;
+      const pw = rect.w * displayW;
+      const ph = rect.h * displayH;
+
+      if (ann.type === "highlight") {
+        const color = HIGHLIGHT_COLORS[ann.color] || HIGHLIGHT_COLORS.yellow;
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        el.setAttribute("x", px);
+        el.setAttribute("y", py);
+        el.setAttribute("width", pw);
+        el.setAttribute("height", ph);
+        el.setAttribute("fill", color.fill);
+        el.setAttribute("stroke", color.stroke);
+        el.setAttribute("stroke-width", "0.5");
+        group.append(el);
+      } else if (ann.type === "underline") {
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        el.setAttribute("x1", px);
+        el.setAttribute("y1", py + ph - 1);
+        el.setAttribute("x2", px + pw);
+        el.setAttribute("y2", py + ph - 1);
+        el.setAttribute("stroke", "var(--accent-dark)");
+        el.setAttribute("stroke-width", "1.5");
+        group.append(el);
+      }
+    }
+
+    // Remove button using foreignObject
+    if (ann.rects.length) {
+      const first = ann.rects[0];
+      const bx = (first.x + first.w) * displayW - 16;
+      const by = first.y * displayH - 14;
+      const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+      fo.setAttribute("x", Math.max(0, bx));
+      fo.setAttribute("y", Math.max(0, by));
+      fo.setAttribute("width", "16");
+      fo.setAttribute("height", "16");
+      fo.style.overflow = "visible";
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "annotation-remove";
+      btn.setAttribute("aria-label", `Remove ${ann.type === "highlight" ? "highlight" : "underline"}: ${ann.text.slice(0, 40)}`);
+      btn.title = `Remove ${ann.type}`;
+      btn.textContent = "×";
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onRemove(ann.id, pageNumber);
+      });
+      fo.append(btn);
+      group.append(fo);
+    }
+
+    svg.append(group);
+  }
 }

@@ -1,0 +1,190 @@
+/* annotations.css — Step 10: text layer, annotation overlay, selection menu */
+
+/* ---- Page wrapper ---- */
+.pdf-page-wrapper {
+  position: relative;
+  display: block;
+  /* Wrapper takes the place of the bare canvas in the pages scroll container */
+  background: #fff;
+  box-shadow: 0 0.4rem 1rem rgba(29, 41, 42, 0.12);
+}
+
+/* The canvas itself no longer carries margin — wrapper does */
+.pdf-page-wrapper .pdf-page {
+  display: block;
+  margin: 0;
+  box-shadow: none;
+}
+
+/* ---- PDF.js text layer ---- */
+.pdf-text-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  /* Text is transparent so the canvas shows through, but still selectable */
+  color: transparent;
+  /* Force the text layer to sit above the canvas */
+  z-index: 2;
+  /* Allow pointer events so text selection works */
+  pointer-events: auto;
+  /* Prevent iOS from dimming text layer on long-press */
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* PDF.js injects spans with absolute positions; keep them in place */
+.pdf-text-layer span,
+.pdf-text-layer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+/* Selection highlight — subtle blue wash */
+.pdf-text-layer ::selection {
+  background: rgba(56, 107, 101, 0.25);
+  color: transparent;
+}
+
+/* ---- SVG annotation overlay ---- */
+.pdf-annotation-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Sit between canvas (z 0) and text layer (z 2) so text stays selectable */
+  z-index: 1;
+  pointer-events: none; /* Let clicks pass to text layer */
+  overflow: visible;
+}
+
+/* Remove-annotation button rendered inside SVG foreignObject */
+.annotation-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted-ink);
+  background: rgba(255, 255, 252, 0.92);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  pointer-events: auto;
+}
+
+/* Show remove button on hover over the annotation group */
+.pdf-annotation-layer g:hover .annotation-remove,
+.pdf-annotation-layer g:focus-within .annotation-remove {
+  opacity: 1;
+}
+
+.annotation-remove:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.annotation-remove:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* ---- Selection menu ---- */
+.selection-menu {
+  position: absolute; /* positioned via JS using page-level coords */
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.5rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.3rem;
+  background: rgba(255, 255, 252, 0.97);
+  box-shadow: 0 0.5rem 1.5rem rgba(29, 41, 42, 0.14);
+  backdrop-filter: blur(4px);
+}
+
+.selection-menu-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.selection-menu-btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 0.2rem;
+  color: var(--ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.selection-menu-btn:hover {
+  border-color: var(--accent);
+  background: rgba(232, 241, 237, 0.6);
+  color: var(--accent-dark);
+}
+
+.selection-menu-btn:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
+
+.selection-menu-btn--evidence {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.selection-menu-btn--evidence:hover {
+  background: rgba(56, 107, 101, 0.12);
+}
+
+.selection-menu-btn--cancel {
+  color: var(--muted-ink);
+}
+
+/* Colour picker row */
+.selection-menu-colors {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.2rem 0.1rem 0;
+  border-top: 1px solid var(--soft-line);
+}
+
+.color-swatch {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 2px solid var(--swatch-stroke, transparent);
+  border-radius: 50%;
+  background: var(--swatch-fill, #ccc);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch[aria-pressed="true"] {
+  box-shadow: 0 0 0 2px var(--accent-dark);
+}
+
+.color-swatch:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
