@@ -10,8 +10,7 @@
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
     <link rel="stylesheet" href="css/stages.css" />
-    <link rel="stylesheet" href="css/annotations.css" />
-    <link rel="stylesheet" href="css/evidence.css" />
+    <link rel="stylesheet" href="css/stage-evidence.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -97,10 +96,6 @@
           <section class="thinking-pane" aria-label="Your thinking">
             <div id="stage-panels"></div>
             <div class="workspace-actions"><button class="button button-quiet" type="button" data-action="previous-stage">Back</button><button class="button button-primary" type="button" data-action="continue-stage">Continue <span aria-hidden="true">→</span></button></div>
-            <section class="evidence-section" id="evidence-section" aria-label="Your evidence">
-              <h3 class="evidence-heading">Evidence</h3>
-              <div id="evidence-panel"></div>
-            </section>
             <button class="stuck-button" type="button" data-action="open-stuck">I'm stuck</button>
             <section class="stuck-panel" id="stuck-panel" hidden aria-labelledby="stuck-title">
               <h3 id="stuck-title" tabindex="-1">What is getting in the way?</h3>

@@ -1,0 +1,194 @@
+/* stage-evidence.css
+   Step 11: evidence displayed within stage panels in the thinking pane.
+   Intentionally quiet — the stage's own thinking task stays primary.
+   Evidence is available to consult, not another job to complete.
+*/
+
+/* ---- Container ---- */
+
+.stage-evidence {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--soft-line);
+}
+
+/* ---- Section heading ---- */
+
+.stage-evidence-heading {
+  margin: 0 0 0.75rem;
+  color: var(--muted-ink);
+  font: 700 0.72rem/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---- Individual evidence card ---- */
+
+.evidence-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem 0.9rem;
+  margin-bottom: 0.65rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 252, 0.45);
+  transition: border-color 140ms ease;
+}
+
+/* Cards marked "in use" get a left border accent */
+.evidence-card.is-used {
+  border-left: 2px solid var(--accent);
+}
+
+/* ---- Passage quote ---- */
+
+.evidence-quote {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* ---- Meta line: page + connected stages ---- */
+
+.evidence-meta {
+  margin: 0;
+  color: var(--muted-ink);
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+}
+
+/* ---- Actions row ---- */
+
+.evidence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+/* Go to page — understated link-style button */
+.evidence-go {
+  padding: 0;
+  border: 0;
+  color: var(--accent-dark);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(40, 80, 76, 0.4);
+  text-underline-offset: 0.2rem;
+  cursor: pointer;
+}
+
+.evidence-go:hover {
+  text-decoration-color: var(--accent-dark);
+}
+
+.evidence-go:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+  border-radius: 0.1rem;
+}
+
+/* Use this / In use toggle */
+.evidence-use {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, background-color 120ms ease;
+}
+
+.evidence-use:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.evidence-use:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
+
+/* Active state: evidence is marked as in use */
+.evidence-use.is-active {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: rgba(56, 107, 101, 0.09);
+  font-weight: 600;
+}
+
+.evidence-use.is-active:hover {
+  background: rgba(56, 107, 101, 0.15);
+}
+
+/* ---- Other evidence (collapsible) ---- */
+
+.stage-evidence-other {
+  margin-top: 0.5rem;
+}
+
+.stage-evidence-other-details {
+  /* Details/summary resets */
+}
+
+.stage-evidence-other-summary {
+  display: block; /* removes triangle in some browsers */
+  padding: 0;
+  color: var(--muted-ink);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  cursor: pointer;
+  list-style: none; /* hide default marker */
+  user-select: none;
+}
+
+/* Custom disclosure triangle */
+.stage-evidence-other-summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 120ms ease;
+}
+
+details[open] .stage-evidence-other-summary::before {
+  transform: rotate(90deg);
+}
+
+.stage-evidence-other-summary:hover {
+  color: var(--accent-dark);
+}
+
+.stage-evidence-other-summary:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+  border-radius: 0.1rem;
+}
+
+/* Remove webkit default */
+.stage-evidence-other-summary::-webkit-details-marker {
+  display: none;
+}
+
+.stage-evidence-other-list {
+  margin-top: 0.65rem;
+}
+
+/* Cards inside the "other" section are slightly more muted */
+.stage-evidence-other-list .evidence-card {
+  background: rgba(255, 255, 252, 0.28);
+}
+
+/* ---- Mobile ---- */
+
+@media (max-width: 640px) {
+  .stage-evidence {
+    margin-top: 1.5rem;
+    padding-top: 1.2rem;
+  }
+}

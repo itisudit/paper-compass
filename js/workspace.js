@@ -14,6 +14,8 @@
 import { appState, stageModules } from "./state.js";
 import { depthLabel, firstNewStage, pathFor } from "./depths.js";
 import { initStuck } from "./stuck.js";
+// Step 11: evidence-in-stage integration
+import { mountStageEvidence, renderStageEvidence, registerNavigationCallback } from "./stage-evidence.js";
 
 const stagePanels = document.querySelector("#stage-panels");
 const previousButton = document.querySelector('[data-action="previous-stage"]');
@@ -96,6 +98,9 @@ function render() {
   Object.entries(panels).forEach(([id, panel]) => { panel.hidden = id !== stage.id; });
   stage.render(contextFor(stage));
 
+  // Step 11: update the evidence area for the stage that just became visible
+  renderStageEvidence(stage.id, depth);
+
   previousButton.hidden = index === 0;
   continueButton.hidden = index === path.length - 1;
   if (!continueButton.hidden) {
@@ -140,6 +145,8 @@ export function initWorkspace() {
     stagePanels.append(panel);
     panels[stage.id] = panel;
     stage.mount(panel, contextFor(stage));
+    // Step 11: append evidence slot to qualifying stage panels after stage markup is built
+    mountStageEvidence(panel, stage.id);
   });
   stuck = initStuck({ getSession: () => appState.readingSession });
   continueButton.addEventListener("click", () => moveStage(1));
@@ -147,4 +154,10 @@ export function initWorkspace() {
   // Keep state current as the reader types, so nothing depends on a save call being remembered.
   stagePanels.addEventListener("input", saveCurrentStage);
   return { render, saveCurrentStage, focusStageTitle };
+}
+
+// Step 11: app.js calls this once pdfViewer is available, so workspace doesn't
+// need to import pdfViewer directly (keeping the dependency direction clean).
+export function registerPdfNavigation(fn) {
+  registerNavigationCallback(fn);
 }
