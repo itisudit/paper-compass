@@ -9,8 +9,10 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/annotations.css" />
     <link rel="stylesheet" href="css/stages.css" />
     <link rel="stylesheet" href="css/stage-evidence.css" />
+    <link rel="stylesheet" href="css/persistence.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -20,6 +22,8 @@
           <h1 id="page-title">Paper<br /><em>Compass</em></h1>
           <p class="introduction">A calmer way to read scientific papers, one that keeps the paper central and your own judgement in the lead.</p>
           <p class="principle">Reduce cognitive load without reducing intellectual load.</p>
+          <div class="recovery" id="recovery" hidden><p class="recovery-label">Unfinished reading</p><p class="recovery-title" id="recovery-title"></p><p class="recovery-detail" id="recovery-detail"></p></div>
+          <p class="recovery-notice" id="recovery-notice" role="status" hidden></p>
           <div class="opening-actions"><button class="button button-primary" type="button" data-action="start">Begin with a paper</button><button class="button button-quiet" type="button" data-action="resume" hidden>Return to reading</button></div>
         </div>
       </section>
@@ -66,7 +70,7 @@
       </section>
 
       <section class="workspace-screen" data-screen="workspace" hidden aria-labelledby="paper-workspace-title">
-        <header class="workspace-header"><div><p class="eyebrow">Reading</p><p class="reading-activity" id="reading-activity"></p><ol class="progress-steps" id="progress-steps" aria-label="Reading progress"></ol></div><div class="workspace-header-actions"><p class="depth-label" id="selected-depth"></p><button class="leave-workspace" type="button" data-action="leave-workspace">Leave reading</button></div></header>
+        <header class="workspace-header"><div><p class="eyebrow">Reading</p><p class="reading-activity" id="reading-activity"></p><ol class="progress-steps" id="progress-steps" aria-label="Reading progress"></ol><p class="save-notice" id="save-notice" role="status" hidden>Autosave is not working. This reading may be lost if you refresh.</p></div><div class="workspace-header-actions"><p class="depth-label" id="selected-depth"></p><button class="leave-workspace" type="button" data-action="leave-workspace">Leave reading</button></div></header>
         <div class="reading-workspace">
           <article class="paper-pane" aria-labelledby="paper-workspace-title">
             <header class="paper-header"><p class="eyebrow">Paper</p><h2 id="paper-workspace-title"></h2><p class="paper-metadata" id="paper-metadata"></p><p class="paper-intention" id="paper-intention" hidden></p></header>
@@ -89,7 +93,7 @@
               </div>
               <p class="pdf-status" id="pdf-status" aria-live="polite"></p>
               <div class="pdf-pages" id="pdf-pages" tabindex="0" aria-label="PDF pages">
-                <div class="pdf-empty-state" id="pdf-empty-state"><p>No PDF added yet.</p><span>You can still begin thinking about the paper from its title and context.</span></div>
+                <div class="pdf-empty-state" id="pdf-empty-state"><p>No PDF added yet.</p><span>You can still begin thinking about the paper from its title and context.</span><div class="pdf-reattach" id="pdf-reattach" hidden><button class="button button-quiet" type="button" id="pdf-reattach-button">Choose the PDF</button><input id="pdf-reattach-input" type="file" accept="application/pdf" hidden /></div></div>
               </div>
             </section>
           </article>

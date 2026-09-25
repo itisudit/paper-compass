@@ -14,7 +14,7 @@
 
 import { pdfjsLib } from "./pdfjs.js";
 import { getAnnotationsForPage } from "./annotations.js";
-import { HIGHLIGHT_COLORS } from "./text-layer.js";
+import { HIGHLIGHT_COLORS, rectToViewport, selectionRectsForPage } from "./text-layer.js";
 
 const MIN_SCALE = 0.5;
 const MAX_SCALE = 2.5;
@@ -119,6 +119,14 @@ export class PdfViewer {
   // Returns the wrapper and canvas for a given pageNumber
   wrapperForPage(pageNumber) {
     return this.wrappers.get(pageNumber) || null;
+  }
+
+  // Stored-form rects (fractions of the unrotated page) for a selection on the given page, or null.
+  selectionRects(range, pageNumber) {
+    const wrapper = this.wrappers.get(pageNumber);
+    const canvas = wrapper?.querySelector(".pdf-page");
+    const view = canvas && this.views.get(canvas);
+    return view ? selectionRectsForPage(range, canvas, view.page, view.viewport) : null;
   }
 
   // Called by the annotation system after adding/removing an annotation to repaint the overlay.
@@ -243,6 +251,25 @@ export class PdfViewer {
     if (target) this.pagesElement.scrollTop = this.pageTop(target) + fraction * target.offsetHeight;
   }
 
+  // Step 12: the reading position as {page, fraction}, or null while no PDF is loaded (so a session
+  // resumed without its PDF keeps the position it was saved with). While the pane is hidden the scroll
+  // metrics are meaningless, so the last known page is reported rather than re-derived from them.
+  currentAnchor() {
+    if (!this.document) return null;
+    if (this.pagesElement.clientHeight) this.updateCurrentPageFromScroll();
+    const { page, fraction } = this.captureAnchor();
+    return { page, fraction: Number.isFinite(fraction) ? fraction : 0 };
+  }
+
+  // Step 12: scroll back to a saved position. The page is clamped to the document that is loaded now.
+  restoreView({ page, fraction = 0 }) {
+    if (!this.document) return;
+    const target = Math.min(Math.max(Number.isInteger(page) ? page : 1, 1), this.pageCount);
+    this.currentPage = target;
+    this.pageInput.value = String(target);
+    this.restoreAnchor({ page: target, fraction });
+  }
+
   layoutPages() {
     if (!this.document) return;
     const version = ++this.layoutVersion;
@@ -326,21 +353,21 @@ export class PdfViewer {
 
     const div = document.createElement("div");
     div.className = "pdf-text-layer";
-    div.style.width = `${Math.floor(viewport.width)}px`;
-    div.style.height = `${Math.floor(viewport.height)}px`;
+    // PDF.js 6 sizes and positions the layer from these CSS variables (the stylesheet in
+    // annotations.css reads them too), so they must be set before the layer is built.
+    div.style.setProperty("--total-scale-factor", String(viewport.scale));
+    div.style.setProperty("--scale-round-x", "1px");
+    div.style.setProperty("--scale-round-y", "1px");
     wrapper.append(div);
 
     try {
       const textContent = await pdfPage.getTextContent();
       if (layoutVersion !== this.layoutVersion) return;
-      const renderTask = pdfjsLib.renderTextLayer({
-        textContentSource: textContent,
-        container: div,
-        viewport,
-      });
-      this.textLayerTasks.add(renderTask);
-      await renderTask.promise;
-      this.textLayerTasks.delete(renderTask);
+      // renderTextLayer was removed from PDF.js; the TextLayer class replaces it.
+      const textLayer = new pdfjsLib.TextLayer({ textContentSource: textContent, container: div, viewport });
+      this.textLayerTasks.add(textLayer);
+      await textLayer.render();
+      this.textLayerTasks.delete(textLayer);
     } catch (err) {
       if (err?.name !== "RenderingCancelledException") {
         console.warn("Paper Compass text layer:", err);
@@ -438,13 +465,9 @@ function renderAnnotationOverlay(wrapper, pageNumber, scale, viewport, pdfPage, 
     group.setAttribute("aria-label", `${ann.type === "highlight" ? "Highlight" : "Underline"}: ${ann.text.slice(0, 60)}`);
 
     for (const rect of ann.rects) {
-      // rect values are fractions of the display canvas dimensions when stored.
-      // Since we stored them as fraction of (displayW × displayH) at annotation time,
-      // multiply back out using current dimensions.
-      const px = rect.x * displayW;
-      const py = rect.y * displayH;
-      const pw = rect.w * displayW;
-      const ph = rect.h * displayH;
+      // Rects are stored as fractions of the unrotated page; rectToViewport maps them onto the
+      // viewport currently on screen, whatever its zoom or rotation.
+      const { x: px, y: py, w: pw, h: ph } = rectToViewport(rect, pdfPage, viewport);
 
       if (ann.type === "highlight") {
         const color = HIGHLIGHT_COLORS[ann.color] || HIGHLIGHT_COLORS.yellow;
@@ -458,11 +481,14 @@ function renderAnnotationOverlay(wrapper, pageNumber, scale, viewport, pdfPage, 
         el.setAttribute("stroke-width", "0.5");
         group.append(el);
       } else if (ann.type === "underline") {
+        // The underline runs along the bottom edge of the text in the page's own frame, so it is
+        // mapped from the stored rect's bottom edge (a zero-height rect) and follows any rotation.
+        const edge = rectToViewport({ x: rect.x, y: rect.y + rect.h, w: rect.w, h: 0 }, pdfPage, viewport);
         const el = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        el.setAttribute("x1", px);
-        el.setAttribute("y1", py + ph - 1);
-        el.setAttribute("x2", px + pw);
-        el.setAttribute("y2", py + ph - 1);
+        el.setAttribute("x1", edge.x);
+        el.setAttribute("y1", edge.y);
+        el.setAttribute("x2", edge.x + edge.w);
+        el.setAttribute("y2", edge.y + edge.h);
         el.setAttribute("stroke", "var(--accent-dark)");
         el.setAttribute("stroke-width", "1.5");
         group.append(el);
@@ -471,9 +497,9 @@ function renderAnnotationOverlay(wrapper, pageNumber, scale, viewport, pdfPage, 
 
     // Remove button using foreignObject
     if (ann.rects.length) {
-      const first = ann.rects[0];
-      const bx = (first.x + first.w) * displayW - 16;
-      const by = first.y * displayH - 14;
+      const first = rectToViewport(ann.rects[0], pdfPage, viewport);
+      const bx = first.x + first.w - 16;
+      const by = first.y - 14;
       const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
       fo.setAttribute("x", Math.max(0, bx));
       fo.setAttribute("y", Math.max(0, by));

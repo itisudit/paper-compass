@@ -1,4 +1,4 @@
-// Application state. In memory only, until persistent storage is introduced.
+// Application state. Lives in memory; persistence.js saves and restores it (Step 12).
 // Each stage defines the shape of its own slice; this file only assembles them.
 import orient from "./stages/orient.js";
 import place from "./stages/place.js";
@@ -17,13 +17,15 @@ export function createReadingSession() {
     stages: Object.fromEntries(Object.values(stageModules).map((stage) => [stage.id, stage.initialState()])),
     // Step 10: annotation and evidence state, centralised in the reading session.
     annotations: [],  // [{id, pageNumber, type, color, text, rects}]
-    evidence: [],     // [{id, annotationId, text, pageNumber, connections}]
+    evidence: [],     // [{id, annotationId, text, pageNumber, connections, usedInStages}]
+    // Step 12: where the reader was in the PDF, as a page and a fraction of that page.
+    view: { page: 1, fraction: 0 },
   };
 }
 
 function createAppState() {
   return {
-    paper: { title: "", authors: "", journal: "", year: "", doi: "", volume: "", issue: "", pages: "", pdf: null, pdfName: "" },
+    paper: { title: "", authors: "", journal: "", year: "", doi: "", volume: "", issue: "", pages: "", pdf: null, pdfName: "", pdfSize: 0, pdfHash: "" },
     readingIntention: "",
     initialInterpretation: "",
     selectedDepth: null,

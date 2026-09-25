@@ -13,7 +13,7 @@
 // Orient and place are excluded — they are orientation stages where evidence
 // gathering has not yet happened in the workflow.
 
-import { getAllEvidence, markEvidenceUsed, unmarkEvidenceUsed } from "./annotations.js";
+import { connectEvidence, disconnectEvidence, getAllEvidence, markEvidenceUsed, unmarkEvidenceUsed } from "./annotations.js";
 
 // Stages that receive the evidence panel.
 const EVIDENCE_STAGES = new Set(["reconstruct", "appraise", "test", "connect", "judge"]);
@@ -132,11 +132,19 @@ function buildEvidenceCard(ev, currentStageId, isCurrent) {
     card.classList.add("is-used");
   }
 
-  // Passage quote
+  // Passage quote. Clicking it goes to the passage's page, the same as "Go to page".
   const quote = document.createElement("blockquote");
-  quote.className = "evidence-quote";
+  quote.className = "evidence-quote is-navigable";
   const maxLen = 180;
   quote.textContent = ev.text.length > maxLen ? ev.text.slice(0, maxLen) + "…" : ev.text;
+  quote.tabIndex = 0;
+  quote.setAttribute("role", "button");
+  quote.setAttribute("aria-label", `Go to page ${ev.pageNumber}: ${quote.textContent}`);
+  const goToPage = () => { if (_navigateFn) _navigateFn(ev.pageNumber); };
+  quote.addEventListener("click", goToPage);
+  quote.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") { event.preventDefault(); goToPage(); }
+  });
 
   // Meta: page number + connected stages (only show connected stages on "other" cards)
   const meta = document.createElement("p");
@@ -161,11 +169,24 @@ function buildEvidenceCard(ev, currentStageId, isCurrent) {
   goBtn.className = "evidence-go";
   goBtn.textContent = `Go to page ${ev.pageNumber}`;
   goBtn.setAttribute("aria-label", `Go to page ${ev.pageNumber} in the PDF`);
-  goBtn.addEventListener("click", () => {
-    if (_navigateFn) _navigateFn(ev.pageNumber);
-  });
+  goBtn.addEventListener("click", goToPage);
 
   actions.append(goBtn);
+
+  // Connections are the reader's own: connect saved evidence to this stage, or take it off again.
+  // Neither action deletes the evidence.
+  const connectBtn = document.createElement("button");
+  connectBtn.type = "button";
+  connectBtn.className = "evidence-connect";
+  if (isCurrent) {
+    connectBtn.textContent = "Disconnect";
+    connectBtn.setAttribute("aria-label", "Disconnect this evidence from this stage. The evidence is kept.");
+    connectBtn.addEventListener("click", () => disconnectEvidence(ev.id, currentStageId));
+  } else {
+    connectBtn.textContent = "Connect to this stage";
+    connectBtn.addEventListener("click", () => connectEvidence(ev.id, currentStageId));
+  }
+  actions.append(connectBtn);
 
   // "Use this" toggle — only on current-stage evidence
   if (isCurrent) {

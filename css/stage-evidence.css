@@ -93,6 +93,36 @@
   border-radius: 0.1rem;
 }
 
+/* Clicking the passage goes to its page */
+.evidence-quote.is-navigable { cursor: pointer; }
+.evidence-quote.is-navigable:hover { color: var(--accent-dark); }
+.evidence-quote.is-navigable:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+}
+
+/* Connect to this stage / Disconnect: quiet, same weight as "Go to page" */
+.evidence-connect {
+  padding: 0;
+  border: 0;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(82, 99, 98, 0.35);
+  text-underline-offset: 0.2rem;
+  cursor: pointer;
+}
+
+.evidence-connect:hover { color: var(--accent-dark); }
+
+.evidence-connect:focus-visible {
+  outline: 3px solid rgba(56, 107, 101, 0.35);
+  outline-offset: 2px;
+  border-radius: 0.1rem;
+}
+
 /* Use this / In use toggle */
 .evidence-use {
   padding: 0.25rem 0.6rem;

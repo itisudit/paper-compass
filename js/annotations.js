@@ -23,17 +23,32 @@
 //   usedInStages: string[]   — stage ids where reader pressed "Use this" (Step 11)
 // }
 
-let _session = null;
+import { appState } from "./state.js";
 
-export function setSession(session) {
-  _session = session;
-  if (!Array.isArray(_session.annotations)) _session.annotations = [];
-  if (!Array.isArray(_session.evidence))    _session.evidence = [];
+// Step 12: the store reads appState.readingSession on every call instead of holding its own pointer.
+// A pointer set once by setSession() goes stale the moment a session is replaced (new paper, resume),
+// which would quietly send annotations to an orphaned array. Reading it lazily cannot go stale.
+function session() {
+  const s = appState.readingSession;
+  if (!Array.isArray(s.annotations)) s.annotations = [];
+  if (!Array.isArray(s.evidence))    s.evidence = [];
+  return s;
+}
+
+// Kept for callers that still pass a session in. It only normalises the shape now.
+export function setSession(target = appState.readingSession) {
+  if (!Array.isArray(target.annotations)) target.annotations = [];
+  if (!Array.isArray(target.evidence))    target.evidence = [];
   // Back-fill usedInStages on any items created before Step 11 upgrade
-  _session.evidence.forEach(ev => {
+  target.evidence.forEach(ev => {
     if (!Array.isArray(ev.usedInStages)) ev.usedInStages = [];
   });
 }
+
+// Step 12: one listener (persistence) hears every mutation, however the UI triggers it.
+let _onChange = null;
+export function onAnnotationStateChange(fn) { _onChange = fn; }
+function changed() { if (_onChange) _onChange(); }
 
 // ---- helpers ----
 
@@ -41,22 +56,25 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function ann()  { return _session?.annotations ?? []; }
-function evs()  { return _session?.evidence ?? []; }
+function ann()  { return session().annotations; }
+function evs()  { return session().evidence; }
 
 // ---- annotations ----
 
 export function addAnnotation({ pageNumber, type, color, text, rects }) {
   const a = { id: uid(), pageNumber, type, color: color ?? null, text, rects };
   ann().push(a);
+  changed();
   return a;
 }
 
 export function removeAnnotation(id) {
   const idx = ann().findIndex(a => a.id === id);
-  if (idx !== -1) ann().splice(idx, 1);
+  if (idx === -1) return;
+  ann().splice(idx, 1);
   // Detach from evidence but keep evidence item
   evs().forEach(ev => { if (ev.annotationId === id) ev.annotationId = null; });
+  changed();
 }
 
 export function getAnnotationsForPage(pageNumber) {
@@ -75,34 +93,37 @@ export function addEvidence({ annotationId, text, pageNumber }) {
     usedInStages: [],   // Step 11
   };
   evs().push(ev);
+  changed();
   return ev;
 }
 
 export function removeEvidence(id) {
   const idx = evs().findIndex(e => e.id === id);
-  if (idx !== -1) evs().splice(idx, 1);
+  if (idx === -1) return;
+  evs().splice(idx, 1);
+  changed();
 }
 
 export function connectEvidence(id, stageId) {
   const ev = evs().find(e => e.id === id);
-  if (ev && !ev.connections.includes(stageId)) ev.connections.push(stageId);
+  if (ev && !ev.connections.includes(stageId)) { ev.connections.push(stageId); changed(); }
 }
 
 export function disconnectEvidence(id, stageId) {
   const ev = evs().find(e => e.id === id);
-  if (ev) ev.connections = ev.connections.filter(s => s !== stageId);
+  if (ev) { ev.connections = ev.connections.filter(s => s !== stageId); changed(); }
 }
 
 // Step 11: mark an evidence item as being used for a particular stage's thinking.
 // Does not modify the reader's written response.
 export function markEvidenceUsed(id, stageId) {
   const ev = evs().find(e => e.id === id);
-  if (ev && !ev.usedInStages.includes(stageId)) ev.usedInStages.push(stageId);
+  if (ev && !ev.usedInStages.includes(stageId)) { ev.usedInStages.push(stageId); changed(); }
 }
 
 export function unmarkEvidenceUsed(id, stageId) {
   const ev = evs().find(e => e.id === id);
-  if (ev) ev.usedInStages = ev.usedInStages.filter(s => s !== stageId);
+  if (ev) { ev.usedInStages = ev.usedInStages.filter(s => s !== stageId); changed(); }
 }
 
 // ---- queries ----

@@ -136,7 +136,14 @@ function changeDepth(newDepth) {
   goToStage(firstNewStage(earlier, newDepth));
 }
 
-export function initWorkspace() {
+// onChange() is told when the reader has changed anything in the thinking pane (typing, hints,
+// inspecting, stage moves, "Use this", stuck answers), so persistence can schedule a save.
+// Re-draws the evidence area of the visible stage, for evidence created or changed outside a stage panel.
+function refreshEvidence() {
+  if (appState.selectedDepth) renderStageEvidence(appState.readingSession.stage, appState.selectedDepth);
+}
+
+export function initWorkspace({ onChange = () => {} } = {}) {
   Object.values(stageModules).forEach((stage) => {
     const panel = document.createElement("div");
     panel.className = "stage-panel";
@@ -153,7 +160,12 @@ export function initWorkspace() {
   previousButton.addEventListener("click", () => moveStage(-1));
   // Keep state current as the reader types, so nothing depends on a save call being remembered.
   stagePanels.addEventListener("input", saveCurrentStage);
-  return { render, saveCurrentStage, focusStageTitle };
+  // Listening on the pane, not on each control, runs after the stage's own handler has updated its
+  // state, and it covers stage modules, evidence cards and the stuck panel without touching them.
+  const thinkingPane = document.querySelector(".thinking-pane");
+  thinkingPane.addEventListener("input", () => onChange());
+  thinkingPane.addEventListener("click", () => onChange());
+  return { render, saveCurrentStage, focusStageTitle, refreshEvidence };
 }
 
 // Step 11: app.js calls this once pdfViewer is available, so workspace doesn't
