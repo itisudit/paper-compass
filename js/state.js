@@ -31,6 +31,10 @@ function createAppState() {
     selectedDepth: null,
     decision: null,
     readingSession: createReadingSession(),
+    // Step 13: the id of the library record this reading is saved as, or null before one exists yet
+    // (opening screen, paper entry, triage, Shore). Set the moment a reading begins — see enterWorkspace
+    // and openRecord in app.js — and the one thing that ties an in-memory reading back to its record.
+    recordId: null,
   };
 }
 

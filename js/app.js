@@ -1,6 +1,8 @@
-// Application wiring: opening, paper entry, triage, and moving into the reading workspace.
-// Stage behaviour lives in js/stages/, the workspace shell lives in workspace.js, and saving and
-// restoring a reading (Step 12) lives in persistence.js. This file only decides when to call it.
+// Application wiring: the library home, paper entry, triage, and moving into the reading workspace.
+// Stage behaviour lives in js/stages/, the workspace shell lives in workspace.js, one session's worth
+// of validation/codec/autosave-engine lives in persistence.js, and the saved collection of readings —
+// the library — lives in library.js. This file is the composition root: it decides when to call each,
+// and holds the one thing none of them own — which record, if any, is the active reading right now.
 import { PdfViewer } from "./pdf-viewer.js";
 import { extractPdfMetadata } from "./metadata-extractor.js";
 import { appState, createReadingSession, readingInProgress, resetAppState } from "./state.js";
@@ -9,9 +11,12 @@ import { initWorkspace, registerPdfNavigation } from "./workspace.js";
 import { addAnnotation, addEvidence, onAnnotationStateChange, removeAnnotation } from "./annotations.js";
 import { SelectionMenu } from "./selection-menu.js";
 import {
-  clearSnapshot, configurePersistence, describeSnapshot, fingerprintFile, flushSave, loadSnapshot,
-  pdfMatches, persistenceHealthy, quarantineSnapshot, requestSave, restoreSnapshot,
+  buildSnapshot, cancelScheduledSave, configurePersistence, fingerprintFile, flushSave,
+  pdfMatches, persistenceHealthy, requestSave, restoreSnapshot,
 } from "./persistence.js";
+import {
+  createRecordId, deleteRecord, describeRecord, getRecord, loadLibrary, touchOpened, upsertRecord,
+} from "./library.js";
 
 const screens = document.querySelectorAll("[data-screen]");
 const status = document.querySelector("#screen-status");
@@ -20,11 +25,9 @@ const triageForm = document.querySelector("#triage-form");
 const pdfInput = document.querySelector("#paper-pdf");
 const extractionStatus = document.querySelector("#metadata-extraction-status");
 const startButton = document.querySelector('[data-action="start"]');
-const resumeButton = document.querySelector('[data-action="resume"]');
-const recovery = document.querySelector("#recovery");
-const recoveryTitle = document.querySelector("#recovery-title");
-const recoveryDetail = document.querySelector("#recovery-detail");
-const recoveryNotice = document.querySelector("#recovery-notice");
+const libraryNotice = document.querySelector("#library-notice");
+const libraryEmpty = document.querySelector("#library-empty");
+const libraryList = document.querySelector("#library-list");
 const saveNotice = document.querySelector("#save-notice");
 const reattach = document.querySelector("#pdf-reattach");
 const reattachButton = document.querySelector("#pdf-reattach-button");
@@ -33,10 +36,15 @@ const pdfViewer = new PdfViewer(document.querySelector(".pdf-viewer"));
 const workspace = initWorkspace({ onChange: () => requestSave() });
 const extractionPrompt = extractionStatus.textContent;
 
-// Step 12: a saved reading found at startup waits here. It is not loaded into appState until the
-// reader chooses Resume reading, and it is only deleted when they choose Start fresh.
-let pendingSaved = null;
-let startupStatus = "none"; // "none" | "ok" | "invalid" | "unavailable"
+// Startup status of the library load ("none" | "ok" | "invalid" | "unavailable"), shown as a quiet
+// notice on the library screen — the malformed-data and storage-unavailable protection Step 12 had
+// for one session now covers the whole library instead.
+let libraryStartupStatus = "none";
+
+const libraryNotices = {
+  invalid: "A saved paper could not be restored, so it has been set aside. The rest of your library is unaffected.",
+  unavailable: "This browser is not allowing local saving, so papers will not survive a refresh.",
+};
 
 configurePersistence({
   // Copy live values into state just before each write: the open textarea and the PDF position.
@@ -46,7 +54,12 @@ configurePersistence({
     if (anchor) appState.readingSession.view = anchor;
   },
   onStatusChange(healthy) { saveNotice.hidden = healthy; },
+  // The autosave engine in persistence.js knows nothing about the library; it only calls this, and
+  // only while a reading is active (appState.recordId is set the moment one begins — see enterWorkspace
+  // and openRecord below).
+  save: () => Boolean(upsertRecord(appState.recordId, buildSnapshot())),
 });
+
 // Annotation and evidence edits, wherever the UI makes them, arrive through this one hook.
 onAnnotationStateChange(() => {
   requestSave();
@@ -86,10 +99,10 @@ pdfViewer.onAnnotationRemove = (id, pageNumber) => {
 // Scrolling changes the saved PDF position. The long delay keeps this from writing while the reader scrolls.
 document.querySelector("#pdf-pages").addEventListener("scroll", () => requestSave({ delay: 1200 }), { passive: true });
 
-// Step 11: give workspace.js a way to navigate the PDF by page number.
-// This keeps the dependency direction clean — workspace doesn't import pdfViewer.
+// Give workspace.js a way to navigate the PDF by page number, without importing pdfViewer directly
+// (keeping the dependency direction clean).
 registerPdfNavigation((pageNumber) => {
-  // A resumed reading has no PDF until the file is chosen again; say so rather than do nothing.
+  // An opened reading has no PDF until the file is chosen again; say so rather than do nothing.
   if (!pdfViewer.document) {
     pdfViewer.setStatus("Choose the PDF again to go to that page.");
     return;
@@ -102,44 +115,95 @@ function showScreen(screenName, announcement) {
   status.textContent = announcement;
 }
 
-const startupNotices = {
-  invalid: "A saved reading could not be restored, so Paper Compass has started clean.",
-  unavailable: "This browser is not allowing local saving, so a reading will not survive a refresh.",
-};
+// ---------- Library home ----------
 
-// Sets the opening screen for whichever of three situations applies: nothing under way, a reading
-// under way in this tab, or a saved reading from an earlier visit waiting for a choice.
-function renderOpening() {
-  const inProgress = readingInProgress();
-  const pending = !inProgress && pendingSaved !== null;
-  const canReturn = inProgress || pending;
-  resumeButton.hidden = !canReturn;
-  resumeButton.textContent = pending ? "Resume reading" : "Return to reading";
-  startButton.textContent = pending ? "Start fresh" : inProgress ? "Start a different paper" : "Begin with a paper";
-  // With a reading to return to, returning is the main action.
-  startButton.classList.toggle("button-primary", !canReturn);
-  startButton.classList.toggle("button-quiet", canReturn);
-  resumeButton.classList.toggle("button-primary", canReturn);
-  resumeButton.classList.toggle("button-quiet", !canReturn);
-  resumeButton.classList.toggle("is-first", canReturn);
-  recovery.hidden = !pending;
-  if (pending) {
-    const { title, detail } = describeSnapshot(pendingSaved);
-    recoveryTitle.textContent = title;
-    recoveryDetail.textContent = detail;
+function renderLibrary() {
+  const { records } = loadLibrary();
+  const sorted = [...records].sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
+  libraryEmpty.hidden = sorted.length > 0;
+  libraryList.hidden = sorted.length === 0;
+  libraryList.replaceChildren(...sorted.map(buildLibraryCard));
+  const notice = libraryNotices[libraryStartupStatus] || "";
+  libraryNotice.textContent = notice;
+  libraryNotice.hidden = !notice;
+}
+
+function buildLibraryCard(record) {
+  const info = describeRecord(record);
+  const item = document.createElement("li");
+  item.className = "library-item";
+  item.dataset.recordId = record.id;
+
+  const main = document.createElement("div");
+  main.className = "library-item-main";
+  const title = document.createElement("p");
+  title.className = "library-item-title";
+  title.textContent = info.title;
+  main.append(title);
+  if (info.byline) {
+    const byline = document.createElement("p");
+    byline.className = "library-item-byline";
+    byline.textContent = info.byline;
+    main.append(byline);
   }
-  const notice = canReturn ? "" : startupNotices[startupStatus] || "";
-  recoveryNotice.textContent = notice;
-  recoveryNotice.hidden = !notice;
+  const meta = document.createElement("p");
+  meta.className = "library-item-meta";
+  meta.textContent = `${info.depthLabel} · ${info.status}`;
+  main.append(meta);
+  if (info.lastOpenedLabel) {
+    const when = document.createElement("p");
+    when.className = "library-item-when";
+    when.textContent = `Last read: ${info.lastOpenedLabel}`;
+    main.append(when);
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "library-item-actions";
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "button button-primary";
+  openButton.dataset.action = "open-record";
+  openButton.textContent = "Continue";
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "library-item-delete";
+  deleteButton.dataset.action = "delete-record";
+  deleteButton.textContent = "Delete";
+  deleteButton.setAttribute("aria-label", `Delete "${info.title}"`);
+  actions.append(openButton, deleteButton);
+
+  item.append(main, actions);
+  return item;
 }
 
-function showOpening(announcement) {
-  renderOpening();
-  showScreen("opening", announcement);
+// One listener for the whole list handles every card's buttons, present or future.
+libraryList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  const item = event.target.closest("[data-record-id]");
+  if (!button || !item) return;
+  const id = item.dataset.recordId;
+  if (button.dataset.action === "open-record") openRecord(id);
+  if (button.dataset.action === "delete-record") deleteRecordWithConfirm(id);
+});
+
+function deleteRecordWithConfirm(id) {
+  const record = getRecord(id);
+  const title = record ? describeRecord(record).title : "this paper";
+  if (!window.confirm(`Delete your reading of "${title}"? This cannot be undone.`)) return;
+  deleteRecord(id);
+  // Defensive: deletion is only reachable from the library screen, where nothing should be the
+  // active in-memory reading — but if it somehow is, do not leave appState pointing at a ghost record.
+  if (appState.recordId === id) { cancelScheduledSave(); resetAppState(); }
+  renderLibrary();
 }
 
-// Shown in the PDF pane after a resume, when the saved reading knew a PDF but the file itself
-// (which is never stored) has not been chosen again.
+function showLibrary(announcement) {
+  renderLibrary();
+  showScreen("library", announcement);
+}
+
+// Shown in the PDF pane after opening a saved reading, when the record knew a PDF but the file
+// itself (which is never stored) has not been chosen again.
 function refreshReattach() {
   const waiting = Boolean(appState.paper.pdfName) && !appState.paper.pdf && readingInProgress();
   reattach.hidden = !waiting;
@@ -161,7 +225,7 @@ function savePaper() {
     volume: data.get("volume").trim(), issue: data.get("issue").trim(), pages: data.get("pages").trim(),
     pdf, pdfName: pdf?.name || "", pdfSize: pdf?.size || 0, pdfHash: "",
   };
-  // The hash lets a resumed reading check it has been given the same file. It is computed in the
+  // The hash lets an opened reading check it has been given the same file. It is computed in the
   // background and saved whenever it arrives.
   if (pdf) {
     fingerprintFile(pdf).then((hash) => {
@@ -177,69 +241,56 @@ function saveTriageResponses() {
   appState.initialInterpretation = triageForm.elements.interpretation.value.trim();
 }
 
-function clearForNewPaper() {
-  // The saved reading is only discarded here, after the reader has confirmed the replacement.
-  clearSnapshot();
-  pendingSaved = null;
-  startupStatus = "none";
+// Starting a new paper never touches any saved reading — every paper gets its own independent
+// library record, so there is nothing here to confirm or overwrite.
+function startNewPaper() {
+  cancelScheduledSave();
   resetAppState();
   paperForm.reset();
   triageForm.reset();
   extractionStatus.textContent = extractionPrompt;
   pdfViewer.load(null);
   reattach.hidden = true;
-}
-
-function startNewPaper() {
-  if (readingInProgress() || pendingSaved) {
-    const message = readingInProgress()
-      ? "Starting a different paper will replace your current reading. Continue?"
-      : `Starting fresh will discard your saved reading of "${pendingSaved.paper.title || "Untitled paper"}". Continue?`;
-    if (!window.confirm(message)) return;
-    clearForNewPaper();
-  }
-  startupStatus = "none";
   showScreen("paper-entry", "Add a paper.");
   pdfInput.focus();
 }
 
-// Choosing a depth begins a fresh reading session for the paper just described.
+// Choosing a depth begins a fresh reading session for the paper just described, and gives it a
+// library record of its own straight away (a brand-new record's lastOpened is "now" — see library.js).
 function enterWorkspace(depth) {
   appState.decision = depth;
   appState.selectedDepth = depth;
   appState.readingSession = createReadingSession();
+  appState.recordId = createRecordId();
   workspace.render();
   showScreen("workspace", `${depthLabel(depth)} reading is ready.`);
   pdfViewer.load(appState.paper.pdf);
   workspace.focusStageTitle();
-  // Choosing a depth is the moment a paper becomes a reading, so it is saved straight away.
   flushSave();
 }
 
-// Loads the saved reading the reader chose to resume. The PDF file is not stored, so the paper pane
-// waits for the file to be chosen again; everything the reader wrote is back at once.
-function resumeSaved() {
+// Opens a saved reading from the library into the active workspace. The PDF file is not stored, so
+// the paper pane waits for the file to be chosen again; everything the reader wrote is back at once.
+function openRecord(id) {
+  const record = getRecord(id);
+  if (!record) { renderLibrary(); return; } // vanished since the list was drawn (e.g. deleted elsewhere)
   try {
-    restoreSnapshot(pendingSaved);
-    pendingSaved = null;
-    workspace.render();
+    restoreSnapshot(record);
+    appState.recordId = record.id;
   } catch (error) {
-    // A snapshot that passed validation but still cannot be shown: set it aside and start clean.
-    console.warn("Paper Compass could not resume the saved reading.", error);
-    quarantineSnapshot();
-    pendingSaved = null;
-    startupStatus = "invalid";
-    resetAppState();
-    showOpening("The saved reading could not be restored.");
+    console.warn("Paper Compass could not open this saved reading.", error);
+    showLibrary("That saved reading could not be opened.");
     return;
   }
+  touchOpened(record.id);
+  workspace.render();
   showScreen("workspace", `${depthLabel(appState.selectedDepth)} reading resumed.`);
   pdfViewer.load(null);
   refreshReattach();
   workspace.focusStageTitle();
 }
 
-// The reader chooses the PDF again after a resume.
+// The reader chooses the PDF again after opening a saved reading.
 async function reattachPdf(file) {
   const session = appState.readingSession;
   const hash = await fingerprintFile(file);
@@ -308,20 +359,10 @@ pdfInput.addEventListener("change", () => {
 });
 
 startButton.addEventListener("click", startNewPaper);
-resumeButton.addEventListener("click", () => {
-  if (!readingInProgress() && pendingSaved) {
-    resumeSaved();
-    return;
-  }
-  workspace.render();
-  showScreen("workspace", "Reading resumed.");
-  pdfViewer.refit();
-  workspace.focusStageTitle();
-});
-document.querySelector('[data-action="back-to-opening"]').addEventListener("click", () => showOpening("Paper Compass opening screen."));
+document.querySelector('[data-action="back-to-library"]').addEventListener("click", () => showLibrary("Paper Compass library."));
 document.querySelector('[data-action="back-to-paper"]').addEventListener("click", () => { saveTriageResponses(); populatePaperForm(); showScreen("paper-entry", "Paper details."); });
 document.querySelector('[data-action="review-triage"]').addEventListener("click", () => { showScreen("triage", "Review your triage."); document.querySelector("#reading-intention").focus(); });
-document.querySelector('[data-action="return-to-start"]').addEventListener("click", () => { clearForNewPaper(); showOpening("Paper Compass opening screen."); });
+document.querySelector('[data-action="return-to-start"]').addEventListener("click", () => { resetAppState(); showLibrary("Paper Compass library."); });
 
 paperForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -337,8 +378,10 @@ document.querySelector('[data-action="shore"]').addEventListener("click", () => 
 document.querySelector('[data-action="leave-workspace"]').addEventListener("click", () => {
   workspace.saveCurrentStage();
   flushSave();
-  showOpening("Reading paused. Your notes are saved.");
-  resumeButton.focus();
+  // The record is already safely persisted, so the active reading can leave memory entirely — the
+  // library, not appState, is what keeps it (see library.js's upsertRecord/getRecord).
+  resetAppState();
+  showLibrary("Reading paused. Your notes are saved.");
 });
 
 reattachButton.addEventListener("click", () => reattachInput.click());
@@ -362,9 +405,7 @@ window.addEventListener("beforeunload", (event) => {
   event.returnValue = "";
 });
 
-// Startup: look for a saved reading, but do not load it. Nothing here can stop the app opening.
-const found = loadSnapshot();
-startupStatus = found.status;
-pendingSaved = found.snapshot;
-renderOpening();
-if (pendingSaved) status.textContent = `A saved reading of ${describeSnapshot(pendingSaved).title} can be resumed.`;
+// Startup: load the library (folding in a Step 12 single-session record if one is found — see
+// library.js) and show it. Nothing here can stop the app opening.
+libraryStartupStatus = loadLibrary().status;
+showLibrary("Paper Compass library.");

@@ -1,23 +1,23 @@
 // persistence.js
-// Step 12: local persistence for the active reading session.
+// Step 12 gave a reading session a schema, validation, and an autosave loop. Step 13 turns that into
+// a small library of readings (library.js), so this module now provides the pieces both a single
+// active reading and a whole library are built from, rather than owning one fixed storage key itself:
 //
-// This module owns everything about saving and restoring a reading: the storage key, the schema
-// version, serialization, validation and migration, and the autosave schedule. Nothing else in the
-// app touches localStorage.
+//   - a generic, guarded JSON codec for localStorage (readStorageJSON / writeStorageJSON /
+//     removeStorageItem / quarantineItem) — used by library.js for the library file, and by this
+//     module's own migration helper for the old Step 12 key
+//   - the schema version, validation and migration for one session's worth of data (paper, depth,
+//     stage, thinking, annotations, evidence, view) — the payload a library record wraps
+//   - PDF identity (content hash, and matching a re-chosen file against what was saved)
+//   - the autosave engine: a debounced, capped schedule that calls back into whatever `save()` the
+//     caller configures — app.js supplies one that writes the active reading into the library
 //
-// What is saved: paper details, the PDF's identity (name, size, content hash), reading intention and
-// first hunch, depth, current stage, every stage's own state, annotations, evidence, stuck records,
-// and the PDF reading position. What is never saved: the PDF file itself, PDF.js objects, selection
-// ranges, open menus, or any other DOM state.
-//
-// A saved snapshot is treated as untrusted input. loadSnapshot() never throws and never returns
-// anything the rest of the app cannot safely render.
+// A saved session is treated as untrusted input throughout: nothing here throws on bad data, and
+// nothing here returns anything the rest of the app cannot safely render.
 
-import { appState, createReadingSession, readingInProgress, stageModules } from "./state.js";
-import { depthLabel, depths, pathFor } from "./depths.js";
+import { appState, readingInProgress, stageModules } from "./state.js";
+import { depths, pathFor } from "./depths.js";
 
-export const STORAGE_KEY = "paperCompass.session";
-export const REJECTED_KEY = "paperCompass.session.rejected";
 export const SCHEMA_VERSION = 1;
 
 const SAVE_DELAY_MS = 500;
@@ -25,7 +25,7 @@ const SAVE_MAX_WAIT_MS = 4000;
 const STAGE_IDS = Object.keys(stageModules);
 const ANNOTATION_TYPES = ["highlight", "underline"];
 
-// ---------- storage access (every touch is guarded; localStorage can throw even on read) ----------
+// ---------- generic storage codec (every touch guarded; localStorage can throw even on read) ----------
 
 function storage() {
   try {
@@ -35,29 +35,56 @@ function storage() {
   }
 }
 
-let healthy = true;
-let onStatusChange = () => {};
-let beforeSave = () => {};
-
-function setHealthy(value) {
-  if (healthy === value) return;
-  healthy = value;
-  try { onStatusChange(healthy); } catch { /* a status listener must never break saving */ }
+// status: "none" (key absent), "ok" (parsed successfully), "invalid" (present but not valid JSON),
+// "unavailable" (localStorage itself could not be reached — blocked, disabled, or absent).
+export function readStorageJSON(key) {
+  const store = storage();
+  if (!store) return { status: "unavailable", data: null };
+  let raw;
+  try {
+    raw = store.getItem(key);
+  } catch {
+    return { status: "unavailable", data: null };
+  }
+  if (raw === null) return { status: "none", data: null };
+  try {
+    return { status: "ok", data: JSON.parse(raw) };
+  } catch {
+    return { status: "invalid", data: null };
+  }
 }
 
-// False after a failed read or write, true again after the next successful write.
-export function persistenceHealthy() {
-  return healthy;
+export function writeStorageJSON(key, value) {
+  const store = storage();
+  if (!store) return false;
+  try {
+    store.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    // Quota exceeded, storage disabled, or blocked by the browser.
+    return false;
+  }
 }
 
-// beforeSave() runs just before each write so the app can copy live DOM values (the open textarea,
-// the PDF position) into state. onStatusChange(healthy) fires when saving starts or stops working.
-export function configurePersistence(options = {}) {
-  beforeSave = options.beforeSave || (() => {});
-  onStatusChange = options.onStatusChange || (() => {});
+export function removeStorageItem(key) {
+  const store = storage();
+  if (!store) return;
+  try { store.removeItem(key); } catch { /* nothing more to do */ }
 }
 
-// ---------- validation ----------
+// Moves whatever is at `key` aside to `rejectedKey` (kept once, for recovery by hand) and removes
+// it, so unreadable data cannot block the app on the next load. Best effort either way.
+export function quarantineItem(key, rejectedKey) {
+  const store = storage();
+  if (!store) return;
+  try {
+    const raw = store.getItem(key);
+    if (raw !== null) store.setItem(rejectedKey, raw);
+  } catch { /* the backup is best effort */ }
+  try { store.removeItem(key); } catch { /* nothing more to do */ }
+}
+
+// ---------- one session's data: validation ----------
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const text = (value) => (typeof value === "string" ? value : "");
@@ -139,8 +166,10 @@ function sanitizeView(raw) {
   };
 }
 
-// Returns a clean snapshot, or null when the data is not a usable reading.
-function sanitizeSnapshot(raw) {
+// Returns a clean session snapshot, or null when the data is not a usable reading. This is the shape
+// a library record wraps (see library.js): paper, intention, hunch, depth, and the reading session
+// itself (stage, stuck, per-stage thinking, annotations, evidence, view).
+export function sanitizeSnapshot(raw) {
   if (!isObject(raw) || !Object.hasOwn(depths, raw.selectedDepth)) return null;
   const session = isObject(raw.session) ? raw.session : {};
   const path = pathFor(raw.selectedDepth);
@@ -164,12 +193,13 @@ function sanitizeSnapshot(raw) {
   };
 }
 
-// ---------- versioning ----------
+// ---------- one session's data: versioning ----------
 
-// migrations[n] upgrades a version n snapshot to version n + 1. Empty while version 1 is the only schema.
+// migrations[n] upgrades a version n session snapshot to version n + 1. Empty while version 1 is the
+// only schema this app has had.
 const migrations = {};
 
-function migrate(raw) {
+export function migrate(raw) {
   if (!isObject(raw) || !Number.isInteger(raw.version) || raw.version < 1) return null;
   let data = raw;
   while (data.version < SCHEMA_VERSION) {
@@ -181,8 +211,11 @@ function migrate(raw) {
   return data.version === SCHEMA_VERSION ? data : null;
 }
 
-// ---------- snapshot build and restore ----------
+// ---------- one session's data: build and restore ----------
 
+// Builds the current reading (appState) into the plain session-snapshot shape above. This is what
+// the configured `save()` hook (see configurePersistence) hands to the library for one active reading,
+// and what a freshly-migrated Step 12 record looks like before library.js adds an id to it.
 export function buildSnapshot(state = appState) {
   const { paper, readingSession: session } = state;
   return {
@@ -203,29 +236,16 @@ export function buildSnapshot(state = appState) {
   };
 }
 
-// Puts a validated snapshot into appState. The PDF file is not part of it, so paper.pdf is null.
+// Puts a validated session snapshot (a library record, or the result of sanitizeSnapshot) into
+// appState. The PDF file is not part of it, so paper.pdf is null; the record's own id/createdAt/
+// lastOpened (if any) are ignored here — assigning appState.recordId is app.js's job, not this one's.
 export function restoreSnapshot(snapshot, state = appState) {
   state.paper = { ...snapshot.paper, pdf: null };
   state.readingIntention = snapshot.readingIntention;
   state.initialInterpretation = snapshot.initialInterpretation;
   state.selectedDepth = snapshot.selectedDepth;
   state.decision = snapshot.selectedDepth;
-  state.readingSession = Object.assign(createReadingSession(), snapshot.session);
-}
-
-// One-line description of a snapshot for the recovery note.
-export function describeSnapshot(snapshot) {
-  const { selectedDepth: depth, session, savedAt, paper } = snapshot;
-  let activity = "";
-  try { activity = stageModules[session.stage].activity(depth); } catch { /* fall back to depth only */ }
-  let when = "";
-  try {
-    when = savedAt ? new Date(savedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "";
-  } catch { /* locale formatting is decoration only */ }
-  return {
-    title: paper.title || "Untitled paper",
-    detail: [depthLabel(depth), activity, when && `saved ${when}`].filter(Boolean).join(" · "),
-  };
+  state.readingSession = { stage: "orient", stuck: [], stages: {}, annotations: [], evidence: [], view: { page: 1, fraction: 0 }, ...snapshot.session };
 }
 
 // ---------- PDF identity ----------
@@ -247,63 +267,32 @@ export function pdfMatches(paper, file, hash) {
   return paper.pdfName === file.name && paper.pdfSize === file.size;
 }
 
-// ---------- load, save, clear ----------
+// ---------- autosave engine ----------
 
-// Moves unreadable data out of the way (kept once, for recovery by hand) so it cannot block the app.
-export function quarantineSnapshot() {
-  const store = storage();
-  if (!store) return;
-  try {
-    const raw = store.getItem(STORAGE_KEY);
-    if (raw !== null) store.setItem(REJECTED_KEY, raw);
-  } catch { /* the backup is best effort */ }
-  try { store.removeItem(STORAGE_KEY); } catch { /* nothing more to do */ }
+let healthy = true;
+let onStatusChange = () => {};
+let beforeSave = () => {};
+let saveFn = () => false;
+
+function setHealthy(value) {
+  if (healthy === value) return;
+  healthy = value;
+  try { onStatusChange(healthy); } catch { /* a status listener must never break saving */ }
 }
 
-// status: "none" (nothing saved), "ok" (snapshot is usable), "invalid" (set aside), "unavailable" (no storage).
-export function loadSnapshot() {
-  const store = storage();
-  if (!store) {
-    setHealthy(false);
-    return { status: "unavailable", snapshot: null };
-  }
-  let stored;
-  try {
-    stored = store.getItem(STORAGE_KEY);
-  } catch {
-    setHealthy(false);
-    return { status: "unavailable", snapshot: null };
-  }
-  if (stored === null) return { status: "none", snapshot: null };
-  let snapshot = null;
-  try {
-    const migrated = migrate(JSON.parse(stored));
-    snapshot = migrated ? sanitizeSnapshot(migrated) : null;
-  } catch {
-    snapshot = null;
-  }
-  if (!snapshot) {
-    quarantineSnapshot();
-    return { status: "invalid", snapshot: null };
-  }
-  return { status: "ok", snapshot };
+// False after a failed save, true again after the next successful one.
+export function persistenceHealthy() {
+  return healthy;
 }
 
-function write(snapshot) {
-  const store = storage();
-  if (!store) {
-    setHealthy(false);
-    return false;
-  }
-  try {
-    store.setItem(STORAGE_KEY, JSON.stringify(snapshot));
-    setHealthy(true);
-    return true;
-  } catch {
-    // Quota exceeded, storage disabled, or blocked by the browser. The reading carries on in memory.
-    setHealthy(false);
-    return false;
-  }
+// beforeSave() runs just before each save so the app can copy live DOM values (the open textarea,
+// the PDF position) into state. save() does the actual write and returns whether it succeeded — for
+// the active reading this is normally `() => library.upsertRecord(appState.recordId, buildSnapshot())`.
+// onStatusChange(healthy) fires when saving starts or stops working.
+export function configurePersistence(options = {}) {
+  beforeSave = options.beforeSave || (() => {});
+  onStatusChange = options.onStatusChange || (() => {});
+  saveFn = options.save || (() => false);
 }
 
 let timer = null;
@@ -315,13 +304,16 @@ function cancelPendingSave() {
   firstPendingAt = 0;
 }
 
-// Writes now. Only a reading in progress is ever saved, so opening the app, browsing the paper form,
-// or sitting on the recovery choice can never overwrite a stored reading.
+// Saves now, via the configured save(). Only a reading in progress is ever saved, so opening the
+// app, browsing the paper form, or sitting on the library screen can never overwrite a saved reading.
 export function flushSave() {
   cancelPendingSave();
   if (!readingInProgress()) return false;
   try { beforeSave(); } catch { /* still save what state already holds */ }
-  return write(buildSnapshot());
+  let ok = false;
+  try { ok = Boolean(saveFn()); } catch { ok = false; }
+  setHealthy(ok);
+  return ok;
 }
 
 // Debounced save for typing, clicks, annotation edits and scrolling. A steady stream of events is
@@ -334,10 +326,8 @@ export function requestSave({ delay = SAVE_DELAY_MS } = {}) {
   timer = setTimeout(flushSave, Math.max(0, Math.min(delay, firstPendingAt + SAVE_MAX_WAIT_MS - now)));
 }
 
-// Forgets the saved reading, and any save still waiting to happen.
-export function clearSnapshot() {
+// Cancels any save still waiting to happen, without writing anything. Used when the in-memory
+// reading is being discarded (left, or replaced) so a stale debounced write cannot land afterwards.
+export function cancelScheduledSave() {
   cancelPendingSave();
-  const store = storage();
-  if (!store) return;
-  try { store.removeItem(STORAGE_KEY); } catch { /* nothing more to do */ }
 }

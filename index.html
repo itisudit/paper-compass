@@ -13,18 +13,24 @@
     <link rel="stylesheet" href="css/stages.css" />
     <link rel="stylesheet" href="css/stage-evidence.css" />
     <link rel="stylesheet" href="css/persistence.css" />
+    <link rel="stylesheet" href="css/library.css" />
   </head>
   <body>
     <main class="app-shell">
-      <section class="screen opening-screen" data-screen="opening" aria-labelledby="page-title">
-        <div class="opening-panel">
+      <section class="screen library-screen" data-screen="library" aria-labelledby="page-title">
+        <div class="library-panel">
           <p class="eyebrow">A thoughtful reading space</p>
           <h1 id="page-title">Paper<br /><em>Compass</em></h1>
           <p class="introduction">A calmer way to read scientific papers, one that keeps the paper central and your own judgement in the lead.</p>
           <p class="principle">Reduce cognitive load without reducing intellectual load.</p>
-          <div class="recovery" id="recovery" hidden><p class="recovery-label">Unfinished reading</p><p class="recovery-title" id="recovery-title"></p><p class="recovery-detail" id="recovery-detail"></p></div>
-          <p class="recovery-notice" id="recovery-notice" role="status" hidden></p>
-          <div class="opening-actions"><button class="button button-primary" type="button" data-action="start">Begin with a paper</button><button class="button button-quiet" type="button" data-action="resume" hidden>Return to reading</button></div>
+          <p class="library-notice" id="library-notice" role="status" hidden></p>
+          <div class="library-actions"><button class="button button-primary" type="button" data-action="start">New paper</button></div>
+          <div class="library" aria-label="Your papers">
+            <div class="library-empty" id="library-empty" hidden>
+              <p>Papers will appear here once you start working through one.</p>
+            </div>
+            <ul class="library-list" id="library-list" hidden></ul>
+          </div>
         </div>
       </section>
 
@@ -44,7 +50,7 @@
           <div class="field-group"><label for="paper-volume">Volume <span class="optional">Optional</span></label><input id="paper-volume" name="volume" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-issue">Issue <span class="optional">Optional</span></label><input id="paper-issue" name="issue" type="text" autocomplete="off" /></div>
           <div class="field-group"><label for="paper-pages">Pages <span class="optional">Optional</span></label><input id="paper-pages" name="pages" type="text" autocomplete="off" /></div>
-          <div class="form-actions"><button class="button button-quiet" type="button" data-action="back-to-opening">Back</button><button class="button button-primary" type="submit">Continue to triage <span aria-hidden="true">→</span></button></div>
+          <div class="form-actions"><button class="button button-quiet" type="button" data-action="back-to-library">Back</button><button class="button button-primary" type="submit">Continue to triage <span aria-hidden="true">→</span></button></div>
         </form>
       </section>
 

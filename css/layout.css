@@ -1,6 +1,4 @@
 .screen { width: min(100% - 3rem, 72rem); min-height: 100vh; margin: 0 auto; padding: 4rem 0; }
-.opening-screen { display: flex; align-items: center; }
-.opening-panel { max-width: 42rem; }
 .workflow-screen { width: min(100% - 3rem, 48rem); padding-top: 6rem; }
 .workflow-heading { max-width: 41rem; margin-bottom: 3rem; }
 .workflow-heading > p:last-child { max-width: 38rem; margin: 1.25rem 0 0; }
@@ -15,8 +13,7 @@
 .confirmation-panel { width: min(100%, 40rem); padding: clamp(2rem, 7vw, 4.5rem); }
 .workspace-screen { display: flex; flex-direction: column; width: min(100% - 3rem, 90rem); height: 100vh; height: 100dvh; margin: 0 auto; padding: 1rem 0 0; }
 .workspace-header { display: flex; flex: 0 0 auto; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: 0.9rem; }
-.workspace-header-actions, .opening-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
-.opening-actions .is-first { order: -1; }
+.workspace-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; }
 .reading-workspace { display: grid; flex: 1 1 auto; grid-template-columns: minmax(0, 1.18fr) minmax(21rem, 0.82fr); grid-template-rows: minmax(0, 1fr); min-height: 0; border-top: 1px solid var(--soft-line); }
 .paper-pane { display: flex; flex-direction: column; min-height: 0; padding: 1.5rem clamp(1.5rem, 4vw, 4rem) 1.5rem 0; border-right: 1px solid var(--soft-line); }
 .thinking-pane { min-height: 0; padding: 2rem 0 2.5rem clamp(1.5rem, 4vw, 4rem); overflow-y: auto; }

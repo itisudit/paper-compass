@@ -1,10 +1,5 @@
-/* persistence.css: Step 12. The recovery note on the opening screen, the autosave notice, and the
-   control for choosing a PDF again after a resume. Kept quiet on purpose. */
+/* persistence.css: the autosave notice in the workspace header, and the control for choosing a PDF
+   again after opening a saved reading. Kept quiet on purpose. Library-screen styling is in library.css. */
 
-.recovery { max-width: 34rem; margin: 0 0 2rem; padding: 0.2rem 0 0.2rem 1.1rem; border-left: 2px solid var(--accent); }
-.recovery-label { margin: 0 0 0.4rem; color: var(--muted-ink); font: 700 0.72rem/1 var(--font-sans); letter-spacing: 0.14em; text-transform: uppercase; }
-.recovery-title { margin: 0; font-size: 1.15rem; line-height: 1.35; overflow-wrap: anywhere; }
-.recovery-detail { margin: 0.3rem 0 0; color: var(--muted-ink); font-size: 0.92rem; font-style: italic; line-height: 1.45; }
-.recovery-notice { max-width: 34rem; margin: 0 0 2rem; color: var(--muted-ink); font-size: 0.92rem; font-style: italic; line-height: 1.5; }
 .save-notice { margin: 0.5rem 0 0; color: var(--muted-ink); font-size: 0.85rem; font-style: italic; line-height: 1.4; }
 .pdf-reattach { margin-top: 1.1rem; }
