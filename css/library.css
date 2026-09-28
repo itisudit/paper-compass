@@ -13,14 +13,20 @@
 .library-list { display: grid; gap: 0.9rem; margin: 0; padding: 0; list-style: none; }
 
 .library-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.2rem;
   padding: 1.1rem 1.3rem;
   border: 1px solid var(--soft-line);
   border-radius: 0.2rem;
   background: var(--panel);
+}
+
+/* The card's first row: the paper's details on the left, its actions on the right. The Relate
+   panel is a normal block sibling below this row, so nothing about this row's layout (which the
+   mobile media query changes to a column) can affect where the panel appears. */
+.library-item-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.2rem;
 }
 
 .library-item-main { display: grid; gap: 0.2rem; min-width: 0; }
@@ -53,7 +59,7 @@
 
 .library-item-actions .button { min-height: 2.4rem; padding: 0.55rem 1rem; }
 
-.library-item-delete {
+.library-item-delete, .library-item-relate, .library-item-relationship-remove, .library-item-relate-cancel {
   padding: 0;
   border: 0;
   color: var(--muted-ink);
@@ -66,16 +72,96 @@
   cursor: pointer;
 }
 
-.library-item-delete:hover { color: var(--accent-dark); }
+.library-item-delete:hover, .library-item-relate:hover, .library-item-relationship-remove:hover, .library-item-relate-cancel:hover {
+  color: var(--accent-dark);
+}
 
-.library-item-delete:focus-visible {
+.library-item-delete:focus-visible, .library-item-relate:focus-visible,
+.library-item-relationship-remove:focus-visible, .library-item-relate-cancel:focus-visible {
   outline: 3px solid rgba(56, 107, 101, 0.35);
   outline-offset: 2px;
   border-radius: 0.1rem;
 }
 
+/* ---- Relationships already recorded for a paper ---- */
+
+.library-item-relationships {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.library-item-relationships:empty { display: none; }
+
+.library-item-relationship {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.6rem;
+}
+
+.library-item-relationship-line {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.library-item-relationship-label { color: var(--accent-dark); font-weight: 600; }
+
+.library-item-relationship-note {
+  flex-basis: 100%;
+  margin: 0 0 0 0.1rem;
+  color: var(--muted-ink);
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.library-item-relationship-remove { font-size: 0.74rem; }
+
+/* ---- Relate compose panel ---- */
+
+.library-item-relate-form {
+  box-sizing: border-box;
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 0.9rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.2rem;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.library-item-relate-form .field-group { gap: 0.35rem; }
+.library-item-relate-form label { display: block; font-family: var(--font-sans); font-size: 0.85rem; color: var(--muted-ink); }
+/* <select> is not covered by components.css's shared `input, textarea { width: 100% }` rule, so it
+   is set explicitly here — without it a select sizes to its longest option text and can crowd a
+   narrow card. */
+.library-item-relate-form select, .library-item-relate-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 0.3rem;
+  font-size: 0.92rem;
+}
+.library-item-relate-form textarea { resize: vertical; }
+
+.library-item-relate-empty { margin: 0; color: var(--muted-ink); font-size: 0.9rem; font-style: italic; }
+
+.library-item-relate-error {
+  margin: -0.3rem 0 0;
+  color: var(--accent-dark);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+}
+
+.library-item-relate-buttons { display: flex; align-items: center; gap: 1rem; }
+
 @media (max-width: 640px) {
-  .library-item { flex-direction: column; align-items: stretch; }
+  .library-item-top { flex-direction: column; align-items: stretch; }
   .library-item-actions { flex-direction: row; align-items: center; justify-content: space-between; }
   .library-item-actions .button { flex: 1 1 auto; }
 }

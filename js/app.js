@@ -15,8 +15,10 @@ import {
   pdfMatches, persistenceHealthy, requestSave, restoreSnapshot,
 } from "./persistence.js";
 import {
-  createRecordId, deleteRecord, describeRecord, getRecord, loadLibrary, touchOpened, upsertRecord,
+  addRelationship, createRecordId, deleteRecord, deleteRelationship, describeRecord, getRecord,
+  getRelationshipsForRecord, loadLibrary, touchOpened, upsertRecord,
 } from "./library.js";
+import { RELATIONSHIP_LABELS, RELATIONSHIP_TYPES } from "./relationships.js";
 
 const screens = document.querySelectorAll("[data-screen]");
 const status = document.querySelector("#screen-status");
@@ -44,6 +46,17 @@ let libraryStartupStatus = "none";
 const libraryNotices = {
   invalid: "A saved paper could not be restored, so it has been set aside. The rest of your library is unaffected.",
   unavailable: "This browser is not allowing local saving, so papers will not survive a refresh.",
+};
+
+// Step 14: why a relationship request was refused, in words a reader would recognise (see
+// relationships.js's addRelationship for the reasons themselves).
+const relationshipRefusalMessages = {
+  missing: "Choose a paper to relate this one to.",
+  self: "A paper cannot be related to itself.",
+  "invalid-type": "Choose a relationship type.",
+  "invalid-record": "That paper is no longer in your library.",
+  duplicate: "These two papers already carry this relationship.",
+  storage: "This could not be saved. Local saving may be unavailable or full.",
 };
 
 configurePersistence({
@@ -122,13 +135,13 @@ function renderLibrary() {
   const sorted = [...records].sort((a, b) => (b.lastOpened || 0) - (a.lastOpened || 0));
   libraryEmpty.hidden = sorted.length > 0;
   libraryList.hidden = sorted.length === 0;
-  libraryList.replaceChildren(...sorted.map(buildLibraryCard));
+  libraryList.replaceChildren(...sorted.map((record) => buildLibraryCard(record, records)));
   const notice = libraryNotices[libraryStartupStatus] || "";
   libraryNotice.textContent = notice;
   libraryNotice.hidden = !notice;
 }
 
-function buildLibraryCard(record) {
+function buildLibraryCard(record, allRecords) {
   const info = describeRecord(record);
   const item = document.createElement("li");
   item.className = "library-item";
@@ -156,6 +169,7 @@ function buildLibraryCard(record) {
     when.textContent = `Last read: ${info.lastOpenedLabel}`;
     main.append(when);
   }
+  main.append(buildRelationshipList(record.id));
 
   const actions = document.createElement("div");
   actions.className = "library-item-actions";
@@ -164,16 +178,173 @@ function buildLibraryCard(record) {
   openButton.className = "button button-primary";
   openButton.dataset.action = "open-record";
   openButton.textContent = "Continue";
+  const relateButton = document.createElement("button");
+  relateButton.type = "button";
+  relateButton.className = "library-item-relate";
+  relateButton.dataset.action = "toggle-relate";
+  relateButton.textContent = "Relate";
+  relateButton.setAttribute("aria-expanded", "false");
   const deleteButton = document.createElement("button");
   deleteButton.type = "button";
   deleteButton.className = "library-item-delete";
   deleteButton.dataset.action = "delete-record";
   deleteButton.textContent = "Delete";
   deleteButton.setAttribute("aria-label", `Delete "${info.title}"`);
-  actions.append(openButton, deleteButton);
+  actions.append(openButton, relateButton, deleteButton);
 
-  item.append(main, actions);
+  // main + actions sit in their own row; the relate form and relationships already render as
+  // block-level siblings after it, so this row's layout (which the mobile media query changes to a
+  // column) can never affect how they stack below it.
+  const top = document.createElement("div");
+  top.className = "library-item-top";
+  top.append(main, actions);
+
+  item.append(top, buildRelateForm(record, allRecords));
   return item;
+}
+
+// The relationships already recorded for this paper, one line each, in the reader's own words —
+// never a graph, never scored, just what the reader said and about which other paper.
+function buildRelationshipList(recordId) {
+  const list = document.createElement("ul");
+  list.className = "library-item-relationships";
+  for (const rel of getRelationshipsForRecord(recordId)) {
+    const row = document.createElement("li");
+    row.className = "library-item-relationship";
+    row.dataset.relationshipId = rel.id;
+    const line = document.createElement("p");
+    line.className = "library-item-relationship-line";
+    const label = document.createElement("span");
+    label.className = "library-item-relationship-label";
+    label.textContent = `${rel.label} `;
+    line.append(label, document.createTextNode(rel.otherTitle));
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "library-item-relationship-remove";
+    removeButton.dataset.action = "remove-relationship";
+    removeButton.textContent = "Remove";
+    removeButton.setAttribute("aria-label", `Remove: ${rel.label} ${rel.otherTitle}`);
+    row.append(line, removeButton);
+    if (rel.note) {
+      const note = document.createElement("p");
+      note.className = "library-item-relationship-note";
+      note.textContent = rel.note;
+      row.append(note);
+    }
+    list.append(row);
+  }
+  return list;
+}
+
+// The inline "Relate" compose panel, built once per card and toggled visible rather than rebuilt —
+// so the reader's in-progress note is never lost by a re-render triggered from elsewhere.
+function buildRelateForm(record, allRecords) {
+  const form = document.createElement("div");
+  form.className = "library-item-relate-form";
+  form.hidden = true;
+
+  const others = allRecords.filter((r) => r.id !== record.id);
+  if (!others.length) {
+    const message = document.createElement("p");
+    message.className = "library-item-relate-empty";
+    message.textContent = "Add another paper to your library to relate this one to it.";
+    form.append(message);
+    return form;
+  }
+
+  const paperField = document.createElement("div");
+  paperField.className = "field-group";
+  const paperLabel = document.createElement("label");
+  paperLabel.textContent = "Paper";
+  const paperSelect = document.createElement("select");
+  paperSelect.className = "library-item-relate-paper";
+  others.forEach((other) => {
+    const option = document.createElement("option");
+    option.value = other.id;
+    option.textContent = describeRecord(other).title;
+    paperSelect.append(option);
+  });
+  paperLabel.append(paperSelect);
+  paperField.append(paperLabel);
+
+  const typeField = document.createElement("div");
+  typeField.className = "field-group";
+  const typeLabel = document.createElement("label");
+  typeLabel.textContent = "Relationship";
+  const typeSelect = document.createElement("select");
+  typeSelect.className = "library-item-relate-type";
+  RELATIONSHIP_TYPES.forEach((type) => {
+    const option = document.createElement("option");
+    option.value = type;
+    option.textContent = RELATIONSHIP_LABELS[type].forward;
+    typeSelect.append(option);
+  });
+  typeLabel.append(typeSelect);
+  typeField.append(typeLabel);
+
+  const noteField = document.createElement("div");
+  noteField.className = "field-group";
+  const noteLabel = document.createElement("label");
+  noteLabel.textContent = "Why? ";
+  const optional = document.createElement("span");
+  optional.className = "optional";
+  optional.textContent = "Optional";
+  noteLabel.append(optional);
+  const noteInput = document.createElement("textarea");
+  noteInput.className = "library-item-relate-note";
+  noteInput.rows = 2;
+  noteField.append(noteLabel, noteInput);
+
+  const error = document.createElement("p");
+  error.className = "library-item-relate-error";
+  error.setAttribute("role", "alert");
+  error.hidden = true;
+
+  const buttons = document.createElement("div");
+  buttons.className = "library-item-relate-buttons";
+  const saveButton = document.createElement("button");
+  saveButton.type = "button";
+  saveButton.className = "button button-quiet";
+  saveButton.dataset.action = "save-relationship";
+  saveButton.textContent = "Save relationship";
+  const cancelButton = document.createElement("button");
+  cancelButton.type = "button";
+  cancelButton.className = "library-item-relate-cancel";
+  cancelButton.dataset.action = "cancel-relate";
+  cancelButton.textContent = "Cancel";
+  buttons.append(saveButton, cancelButton);
+
+  form.append(paperField, typeField, noteField, error, buttons);
+  return form;
+}
+
+function toggleRelateForm(item, relateButton) {
+  const form = item.querySelector(".library-item-relate-form");
+  const opening = form.hidden;
+  form.hidden = !opening;
+  relateButton.setAttribute("aria-expanded", String(opening));
+  if (opening) form.querySelector("select, textarea")?.focus();
+  else form.querySelector(".library-item-relate-error")?.setAttribute("hidden", "");
+}
+
+function saveRelationshipFromForm(item) {
+  const form = item.querySelector(".library-item-relate-form");
+  const errorEl = form.querySelector(".library-item-relate-error");
+  const paperSelect = form.querySelector(".library-item-relate-paper");
+  const typeSelect = form.querySelector(".library-item-relate-type");
+  const noteInput = form.querySelector(".library-item-relate-note");
+  const result = addRelationship({
+    fromRecordId: item.dataset.recordId,
+    toRecordId: paperSelect?.value,
+    type: typeSelect?.value,
+    note: noteInput?.value || "",
+  });
+  if (!result.ok) {
+    errorEl.textContent = relationshipRefusalMessages[result.reason] || "This relationship could not be saved.";
+    errorEl.hidden = false;
+    return;
+  }
+  renderLibrary(); // both papers' cards need to reflect the new link
 }
 
 // One listener for the whole list handles every card's buttons, present or future.
@@ -182,8 +353,16 @@ libraryList.addEventListener("click", (event) => {
   const item = event.target.closest("[data-record-id]");
   if (!button || !item) return;
   const id = item.dataset.recordId;
-  if (button.dataset.action === "open-record") openRecord(id);
-  if (button.dataset.action === "delete-record") deleteRecordWithConfirm(id);
+  const action = button.dataset.action;
+  if (action === "open-record") openRecord(id);
+  if (action === "delete-record") deleteRecordWithConfirm(id);
+  if (action === "toggle-relate") toggleRelateForm(item, button);
+  if (action === "cancel-relate") toggleRelateForm(item, item.querySelector('[data-action="toggle-relate"]'));
+  if (action === "save-relationship") saveRelationshipFromForm(item);
+  if (action === "remove-relationship") {
+    const relId = event.target.closest("[data-relationship-id]")?.dataset.relationshipId;
+    if (relId && window.confirm("Remove this relationship?")) { deleteRelationship(relId); renderLibrary(); }
+  }
 });
 
 function deleteRecordWithConfirm(id) {

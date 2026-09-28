@@ -1,6 +1,7 @@
-// Step 12/13 checks for persistence.js (the per-session codec and autosave engine) and library.js
-// (the saved collection built on top of it). Run with `npm test` (Node 20+). No dependencies, no
-// browser: localStorage is a small stub.
+// Step 12/13/14 checks for persistence.js (the per-session codec and autosave engine), library.js
+// (the saved collection built on top of it), and relationships.js (reader-created links between two
+// library records). Run with `npm test` (Node 20+). No dependencies, no browser: localStorage is a
+// small stub.
 import { test, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { appState, resetAppState, createReadingSession } from "../js/state.js";
@@ -10,9 +11,11 @@ import {
   persistenceHealthy, readStorageJSON, requestSave, restoreSnapshot, writeStorageJSON,
 } from "../js/persistence.js";
 import {
-  LEGACY_SESSION_KEY, LIBRARY_KEY, LIBRARY_REJECTED_KEY, LIBRARY_VERSION, createRecordId,
-  deleteRecord, describeRecord, getRecord, loadLibrary, sortRecords, touchOpened, upsertRecord,
+  LEGACY_SESSION_KEY, LIBRARY_KEY, LIBRARY_REJECTED_KEY, LIBRARY_VERSION, addRelationship,
+  createRecordId, deleteRecord, deleteRelationship, describeRecord, getRecord,
+  getRelationshipsForRecord, loadLibrary, sortRecords, touchOpened, upsertRecord,
 } from "../js/library.js";
+import { RELATIONSHIP_TYPES } from "../js/relationships.js";
 import {
   addAnnotation, addEvidence, connectEvidence, getAllEvidence, getAnnotationsForPage,
   markEvidenceUsed, onAnnotationStateChange,
@@ -434,4 +437,219 @@ test("every depth keeps a valid stage through the library round trip", () => {
     assert.equal(record.selectedDepth, depth);
     assert.equal(record.session.stage, last);
   }
+});
+
+// ---------------------------------------------------------------------------
+// relationships.js / library.js: Step 14 cross-paper relationships
+// ---------------------------------------------------------------------------
+
+function twoPapers() {
+  const idA = startReading("swim", { paper: { title: "Paper A" } });
+  upsertRecord(idA, buildSnapshot());
+  resetAppState();
+  const idB = startReading("dive-deep", { paper: { title: "Paper B" } });
+  upsertRecord(idB, buildSnapshot());
+  resetAppState();
+  return { idA, idB };
+}
+
+test("creating a relationship succeeds and is visible from both papers, in the right words", () => {
+  const { idA, idB } = twoPapers();
+  const result = addRelationship({ fromRecordId: idB, toRecordId: idA, type: "challenges", note: "Different sample." });
+  assert.equal(result.ok, true);
+  assert.equal(result.relationship.fromRecordId, idB);
+  assert.equal(result.relationship.toRecordId, idA);
+  assert.equal(result.relationship.type, "challenges");
+  assert.equal(result.relationship.note, "Different sample.");
+  assert.ok(result.relationship.createdAt > 0);
+
+  const fromB = getRelationshipsForRecord(idB);
+  assert.equal(fromB.length, 1);
+  assert.equal(fromB[0].label, "Challenges");
+  assert.equal(fromB[0].otherTitle, "Paper A");
+  assert.equal(fromB[0].note, "Different sample.");
+
+  const fromA = getRelationshipsForRecord(idA);
+  assert.equal(fromA.length, 1);
+  assert.equal(fromA[0].label, "Challenged by");
+  assert.equal(fromA[0].otherTitle, "Paper B");
+  assert.equal(fromA[0].id, fromB[0].id); // the same underlying link, seen from each side
+});
+
+test("a relationship persists and restores exactly, across a fresh load", () => {
+  const { idA, idB } = twoPapers();
+  addRelationship({ fromRecordId: idA, toRecordId: idB, type: "extends", note: "Builds on their model." });
+  const raw = JSON.parse(store.getItem(LIBRARY_KEY));
+  assert.equal(raw.relationships.length, 1);
+  assert.equal(raw.version, LIBRARY_VERSION);
+
+  const { relationships } = loadLibrary();
+  assert.equal(relationships.length, 1);
+  assert.equal(relationships[0].fromRecordId, idA);
+  assert.equal(relationships[0].toRecordId, idB);
+  assert.equal(relationships[0].type, "extends");
+  assert.equal(relationships[0].note, "Builds on their model.");
+});
+
+test("relationships between two independent papers do not affect a third, unrelated paper", () => {
+  const { idA, idB } = twoPapers();
+  const idC = startReading("surf", { paper: { title: "Paper C" } });
+  upsertRecord(idC, buildSnapshot());
+
+  addRelationship({ fromRecordId: idA, toRecordId: idB, type: "supports" });
+  assert.equal(getRelationshipsForRecord(idC).length, 0);
+  assert.equal(getRelationshipsForRecord(idA).length, 1);
+  assert.equal(getRelationshipsForRecord(idB).length, 1);
+});
+
+test("the reverse perspective reads naturally for every relationship type", () => {
+  const { idA, idB } = twoPapers();
+  for (const type of RELATIONSHIP_TYPES) {
+    resetAppState();
+    // fresh pair each time so types never collide as duplicates
+    const { idA: a, idB: b } = twoPapers();
+    const result = addRelationship({ fromRecordId: b, toRecordId: a, type });
+    assert.equal(result.ok, true);
+    const forward = getRelationshipsForRecord(b)[0];
+    const reverse = getRelationshipsForRecord(a)[0];
+    assert.ok(forward.label.length > 0 && reverse.label.length > 0, type);
+    assert.notEqual(forward.otherTitle, reverse.otherTitle);
+  }
+});
+
+test("the same two papers cannot carry the same relationship type twice, in either direction", () => {
+  const { idA, idB } = twoPapers();
+  const first = addRelationship({ fromRecordId: idA, toRecordId: idB, type: "related" });
+  assert.equal(first.ok, true);
+
+  const sameDirection = addRelationship({ fromRecordId: idA, toRecordId: idB, type: "related" });
+  assert.equal(sameDirection.ok, false);
+  assert.equal(sameDirection.reason, "duplicate");
+
+  const otherDirection = addRelationship({ fromRecordId: idB, toRecordId: idA, type: "related" });
+  assert.equal(otherDirection.ok, false);
+  assert.equal(otherDirection.reason, "duplicate");
+
+  // a different type between the same two papers is not a duplicate
+  const differentType = addRelationship({ fromRecordId: idA, toRecordId: idB, type: "contrasts" });
+  assert.equal(differentType.ok, true);
+  assert.equal(getRelationshipsForRecord(idA).length, 2);
+});
+
+test("a paper cannot be related to itself", () => {
+  const { idA } = twoPapers();
+  const result = addRelationship({ fromRecordId: idA, toRecordId: idA, type: "supports" });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "self");
+  assert.equal(getRelationshipsForRecord(idA).length, 0);
+});
+
+test("missing ends, an unknown type, and a paper not in the library are all refused, not crashed", () => {
+  const { idA, idB } = twoPapers();
+  assert.equal(addRelationship({ fromRecordId: idA, toRecordId: "", type: "supports" }).reason, "missing");
+  assert.equal(addRelationship({ fromRecordId: "", toRecordId: idB, type: "supports" }).reason, "missing");
+  assert.equal(addRelationship({ fromRecordId: idA, toRecordId: idB, type: "loves" }).reason, "invalid-type");
+  assert.equal(addRelationship({ fromRecordId: idA, toRecordId: "not-a-real-id", type: "supports" }).reason, "invalid-record");
+  assert.equal(getRelationshipsForRecord(idA).length, 0);
+});
+
+test("deleting a paper removes every relationship involving it, from both sides, and leaves no trace", () => {
+  const { idA, idB } = twoPapers();
+  const idC = startReading("surf", { paper: { title: "Paper C" } });
+  upsertRecord(idC, buildSnapshot());
+  addRelationship({ fromRecordId: idA, toRecordId: idB, type: "supports" });
+  addRelationship({ fromRecordId: idC, toRecordId: idA, type: "related" });
+  assert.equal(loadLibrary().relationships.length, 2);
+
+  assert.equal(deleteRecord(idA), true);
+  const { relationships } = loadLibrary();
+  assert.equal(relationships.length, 0); // both links touched A, so both are gone
+  assert.equal(getRelationshipsForRecord(idB).length, 0);
+  assert.equal(getRelationshipsForRecord(idC).length, 0);
+});
+
+test("deleting one paper does not affect relationships or content between two unrelated papers", () => {
+  const { idA, idB } = twoPapers();
+  const idC = startReading("surf", { paper: { title: "Paper C" } });
+  upsertRecord(idC, buildSnapshot());
+  const idD = startReading("surf", { paper: { title: "Paper D" } });
+  upsertRecord(idD, buildSnapshot());
+  addRelationship({ fromRecordId: idA, toRecordId: idB, type: "supports" });
+  addRelationship({ fromRecordId: idC, toRecordId: idD, type: "contrasts" });
+
+  assert.equal(deleteRecord(idA), true);
+  assert.equal(getRelationshipsForRecord(idC).length, 1);
+  assert.equal(getRelationshipsForRecord(idD).length, 1);
+  assert.equal(getRecord(idB).paper.title, "Paper B"); // B itself is untouched, only the A-B link is gone
+  assert.equal(getRelationshipsForRecord(idB).length, 0);
+});
+
+test("deleteRelationship removes one link without touching the papers or any other relationship", () => {
+  const { idA, idB } = twoPapers();
+  const idC = startReading("surf", { paper: { title: "Paper C" } });
+  upsertRecord(idC, buildSnapshot());
+  const ab = addRelationship({ fromRecordId: idA, toRecordId: idB, type: "supports" }).relationship;
+  addRelationship({ fromRecordId: idA, toRecordId: idC, type: "related" });
+
+  assert.equal(deleteRelationship(ab.id), true);
+  assert.equal(getRelationshipsForRecord(idA).length, 1);
+  assert.equal(getRelationshipsForRecord(idB).length, 0);
+  assert.equal(loadLibrary().records.length, 3);
+  assert.equal(deleteRelationship("not-a-real-id"), false);
+});
+
+test("malformed relationship data is dropped without losing the library's records", () => {
+  const { idA, idB } = twoPapers();
+  const library = JSON.parse(store.getItem(LIBRARY_KEY));
+  library.relationships = [
+    { id: "r1", fromRecordId: idA, toRecordId: idB, type: "supports", createdAt: 1 }, // valid
+    { id: "r2", fromRecordId: idA, toRecordId: idA, type: "supports", createdAt: 2 }, // self-link
+    { id: "r3", fromRecordId: idA, toRecordId: "ghost", type: "supports", createdAt: 3 }, // dangling
+    { id: "r4", fromRecordId: idA, toRecordId: idB, type: "not-a-type", createdAt: 4 }, // bad type
+    { fromRecordId: idA, toRecordId: idB, type: "related", createdAt: 5 }, // no id
+    "not even an object",
+    { id: "r1", fromRecordId: idA, toRecordId: idB, type: "supports", createdAt: 6 }, // duplicate id
+    { id: "r6", fromRecordId: idB, toRecordId: idA, type: "supports", createdAt: 7 }, // duplicate pair+type (reverse)
+  ];
+  writeStorageJSON(LIBRARY_KEY, library);
+
+  const { status, records, relationships } = loadLibrary();
+  assert.equal(status, "ok");
+  assert.equal(records.length, 2);
+  assert.equal(relationships.length, 1);
+  assert.equal(relationships[0].id, "r1");
+});
+
+test("old Step 13 library data with no relationships key at all still loads correctly", () => {
+  const idA = startReading("swim", { paper: { title: "Pre-existing paper" } });
+  const step13Library = {
+    version: 1,
+    migratedLegacySession: true,
+    records: [{ ...buildSnapshot(), id: idA, createdAt: Date.now(), lastOpened: Date.now() }],
+    // no "relationships" key — exactly what Step 13 wrote
+  };
+  writeStorageJSON(LIBRARY_KEY, step13Library);
+
+  const { status, records, relationships } = loadLibrary();
+  assert.equal(status, "ok");
+  assert.equal(records.length, 1);
+  assert.equal(records[0].paper.title, "Pre-existing paper");
+  assert.deepEqual(relationships, []);
+
+  // and the library is fully usable afterwards: a relationship can be added once there is a second paper
+  const idB = startReading("swim", { paper: { title: "A new paper" } });
+  upsertRecord(idB, buildSnapshot());
+  const result = addRelationship({ fromRecordId: idA, toRecordId: idB, type: "related" });
+  assert.equal(result.ok, true);
+  assert.equal(loadLibrary().records.length, 2);
+});
+
+test("unavailable storage never throws for any relationship operation", () => {
+  delete globalThis.localStorage;
+  assert.deepEqual(loadLibrary().relationships, []);
+  assert.deepEqual(getRelationshipsForRecord("anything"), []);
+  const result = addRelationship({ fromRecordId: "a", toRecordId: "b", type: "supports" });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "storage");
+  assert.equal(deleteRelationship("anything"), false);
 });

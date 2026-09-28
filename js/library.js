@@ -5,11 +5,17 @@
 // never touches appState — exactly one record is "open" at a time, in appState.readingSession, and
 // that stays app.js's responsibility (see restoreSnapshot in persistence.js).
 //
+// Step 14 adds relationships — reader-created links between two records ("Paper B challenges Paper
+// A", with an optional note) — to the same file. They belong to the library, not to any one reading
+// session, so they live and are validated here too; the validation and dedupe rules themselves are
+// relationships.js's, the same division as records and persistence.js.
+//
 // Storage shape (paperCompass.library):
 //   {
 //     version: LIBRARY_VERSION,
 //     migratedLegacySession: boolean,  // true once the old Step 12 single-session key has been folded in
-//     records: [ { id, createdAt, lastOpened, ...session snapshot } ]
+//     records: [ { id, createdAt, lastOpened, ...session snapshot } ],
+//     relationships: [ { id, fromRecordId, toRecordId, type, note, createdAt, updatedAt } ]
 //   }
 // The "...session snapshot" part of each record is exactly what persistence.js's buildSnapshot() /
 // sanitizeSnapshot() produce (paper, readingIntention, initialInterpretation, selectedDepth, session,
@@ -17,9 +23,14 @@
 // two timestamps of its own: when the record was first created, and when it was last opened.
 
 import {
-  migrate as migrateSessionData, quarantineItem, readStorageJSON, removeStorageItem,
+  migrate as migrateSessionData, newId, quarantineItem, readStorageJSON, removeStorageItem,
   sanitizeSnapshot as sanitizeSessionData, writeStorageJSON,
 } from "./persistence.js";
+import {
+  addRelationship as addRelationshipPure, describeRelationshipsForRecord as describeRelationshipsPure,
+  removeRelationship as removeRelationshipPure, removeRelationshipsForRecord,
+  sanitizeRelationships,
+} from "./relationships.js";
 import { stageModules } from "./state.js";
 import { depthLabel } from "./depths.js";
 
@@ -29,20 +40,18 @@ export const LIBRARY_REJECTED_KEY = "paperCompass.library.rejected";
 // has one lying around gets it folded into the library exactly once.
 export const LEGACY_SESSION_KEY = "paperCompass.session";
 export const LEGACY_REJECTED_KEY = "paperCompass.session.rejected";
-export const LIBRARY_VERSION = 1;
+// Step 13 shipped with only records, at version 1. Step 14 adds a relationships array alongside them,
+// at version 2 — an old file with no relationships key at all is accepted as version 1 and simply
+// has none (see sanitizeLibrary below), so nothing about a Step 13 library needs an explicit upgrade
+// step. A version this app has never produced (0, or newer than LIBRARY_VERSION) is not guessed at.
+export const LIBRARY_VERSION = 2;
+const KNOWN_LIBRARY_VERSIONS = [1, 2];
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value);
 
-function newId() {
-  try {
-    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-  } catch { /* fall through to the manual id below */ }
-  return `r${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
-}
-
 function emptyLibrary() {
-  return { version: LIBRARY_VERSION, migratedLegacySession: false, records: [] };
+  return { version: LIBRARY_VERSION, migratedLegacySession: false, records: [], relationships: [] };
 }
 
 // A validated record: a sanitized session snapshot (see persistence.js) plus its library-only fields.
@@ -62,7 +71,7 @@ function sanitizeRecord(raw) {
 }
 
 function sanitizeLibrary(raw) {
-  if (!isObject(raw) || !Number.isInteger(raw.version)) return null;
+  if (!isObject(raw) || !KNOWN_LIBRARY_VERSIONS.includes(raw.version)) return null;
   const records = (Array.isArray(raw.records) ? raw.records : []).map(sanitizeRecord).filter(Boolean);
   // Two records sharing an id would make "open" and "delete" ambiguous; keep the more recently saved.
   const byId = new Map();
@@ -70,7 +79,12 @@ function sanitizeLibrary(raw) {
     const existing = byId.get(record.id);
     if (!existing || (record.savedAt || 0) >= (existing.savedAt || 0)) byId.set(record.id, record);
   }
-  return { version: LIBRARY_VERSION, migratedLegacySession: raw.migratedLegacySession === true, records: [...byId.values()] };
+  const keptRecords = [...byId.values()];
+  // A version-1 file has no relationships key at all; sanitizeRelationships treats that exactly like
+  // an empty array, which is the correct reading of "no relationships existed yet".
+  const validIds = new Set(keptRecords.map((r) => r.id));
+  const relationships = sanitizeRelationships(raw.relationships, validIds);
+  return { version: LIBRARY_VERSION, migratedLegacySession: raw.migratedLegacySession === true, records: keptRecords, relationships };
 }
 
 // Most-recently-opened first. Exported separately so callers (and tests) can sort a record list
@@ -90,7 +104,7 @@ function migrateLegacySession(library) {
   if (found.status === "ok") {
     const migrated = migrateSessionData(found.data);
     const body = migrated ? sanitizeSessionData(migrated) : null;
-    if (body) addition = { ...body, id: newId(), createdAt: body.savedAt || Date.now(), lastOpened: body.savedAt || Date.now() };
+    if (body) addition = { ...body, id: newId("rec"), createdAt: body.savedAt || Date.now(), lastOpened: body.savedAt || Date.now() };
   } else if (found.status === "invalid") {
     quarantineItem(LEGACY_SESSION_KEY, LEGACY_REJECTED_KEY);
   }
@@ -104,7 +118,7 @@ function migrateLegacySession(library) {
 // been quarantined; the reader still gets an empty, working library), "unavailable" (no localStorage).
 export function loadLibrary() {
   const found = readStorageJSON(LIBRARY_KEY);
-  if (found.status === "unavailable") return { status: "unavailable", records: [] };
+  if (found.status === "unavailable") return { status: "unavailable", records: [], relationships: [] };
   let library = found.status === "ok" ? sanitizeLibrary(found.data) : null;
   const invalid = found.status === "invalid" || (found.status === "ok" && !library);
   if (invalid) quarantineItem(LIBRARY_KEY, LIBRARY_REJECTED_KEY);
@@ -114,7 +128,7 @@ export function loadLibrary() {
     library = migrated;
     writeStorageJSON(LIBRARY_KEY, library); // best effort; the in-memory result is returned regardless
   }
-  return { status: invalid ? "invalid" : found.status, records: library.records };
+  return { status: invalid ? "invalid" : found.status, records: library.records, relationships: library.relationships };
 }
 
 // The library, sorted for display.
@@ -127,7 +141,7 @@ export function getRecord(id) {
 }
 
 export function createRecordId() {
-  return newId();
+  return newId("rec");
 }
 
 // Creates or updates one record. `touchOpened` bumps lastOpened to now (used when the reader opens a
@@ -157,14 +171,54 @@ export function touchOpened(id) {
   return upsertRecord(recordId, sessionData, { touchOpened: true });
 }
 
-// Removes one record. Returns true if a record was found and the library was written back.
+// Removes one record, and — so no relationship can ever point at a paper that no longer exists —
+// every relationship that named it on either side. Returns true if a record was found and the
+// library was written back.
 export function deleteRecord(id) {
   const found = readStorageJSON(LIBRARY_KEY);
   const library = found.status === "ok" ? sanitizeLibrary(found.data) : null;
   if (!library) return false;
   const records = library.records.filter((record) => record.id !== id);
   if (records.length === library.records.length) return false;
-  return writeStorageJSON(LIBRARY_KEY, { ...library, records });
+  const relationships = removeRelationshipsForRecord(library.relationships, id);
+  return writeStorageJSON(LIBRARY_KEY, { ...library, records, relationships });
+}
+
+// ---------- relationships ----------
+// Storage lives in the same library file as records (paperCompass.library), so every operation here
+// follows the same read-validate-modify-write shape as upsertRecord/deleteRecord above. The
+// validation and dedupe rules themselves are relationships.js's job, not repeated here.
+
+// Every relationship touching one record, described from that record's point of view, ready to show
+// on its card. Always freshly computed from storage — nothing about a relationship is cached.
+export function getRelationshipsForRecord(id) {
+  const { records, relationships } = loadLibrary();
+  return describeRelationshipsPure(id, relationships, records);
+}
+
+// Creates one relationship. Returns { ok: true, relationship } on success, or { ok: false, reason }
+// — see relationships.js's addRelationship for what reason can be — including "storage" when the
+// library itself could not be read or the write failed (unavailable storage, quota).
+export function addRelationship(input) {
+  const found = readStorageJSON(LIBRARY_KEY);
+  if (found.status === "unavailable") return { ok: false, reason: "storage" };
+  const library = (found.status === "ok" ? sanitizeLibrary(found.data) : null) || emptyLibrary();
+  const result = addRelationshipPure(library.relationships, library.records, input);
+  if (!result.ok) return result;
+  if (!writeStorageJSON(LIBRARY_KEY, { ...library, relationships: result.relationships })) {
+    return { ok: false, reason: "storage" };
+  }
+  return { ok: true, relationship: result.relationship };
+}
+
+// Removes one relationship by id. Returns true if it existed and the library was written back.
+export function deleteRelationship(id) {
+  const found = readStorageJSON(LIBRARY_KEY);
+  const library = found.status === "ok" ? sanitizeLibrary(found.data) : null;
+  if (!library) return false;
+  const relationships = removeRelationshipPure(library.relationships, id);
+  if (relationships === library.relationships) return false; // nothing had that id
+  return writeStorageJSON(LIBRARY_KEY, { ...library, relationships });
 }
 
 function startOfDay(ts) {

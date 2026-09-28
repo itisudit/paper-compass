@@ -66,6 +66,16 @@ export function writeStorageJSON(key, value) {
   }
 }
 
+// A generic id, for anything that needs a stable identity of its own — a library record, a
+// relationship between two records, and so on. Not tied to any one collection's shape, so every
+// module that needs an id uses this instead of writing its own.
+export function newId(prefix = "id") {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  } catch { /* fall through to the manual id below */ }
+  return `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function removeStorageItem(key) {
   const store = storage();
   if (!store) return;
