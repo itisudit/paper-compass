@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/stage-evidence.css" />
     <link rel="stylesheet" href="css/persistence.css" />
     <link rel="stylesheet" href="css/library.css" />
+    <link rel="stylesheet" href="css/synthesis.css" />
   </head>
   <body>
     <main class="app-shell">
@@ -24,13 +25,17 @@
           <p class="introduction">A calmer way to read scientific papers, one that keeps the paper central and your own judgement in the lead.</p>
           <p class="principle">Reduce cognitive load without reducing intellectual load.</p>
           <p class="library-notice" id="library-notice" role="status" hidden></p>
-          <div class="library-actions"><button class="button button-primary" type="button" data-action="start">New paper</button></div>
+          <div class="library-actions"><button class="button button-primary" type="button" data-action="start">New paper</button><button class="button button-quiet" type="button" data-action="compare">Compare papers</button></div>
           <div class="library" aria-label="Your papers">
             <div class="library-empty" id="library-empty" hidden>
               <p>Papers will appear here once you start working through one.</p>
             </div>
             <ul class="library-list" id="library-list" hidden></ul>
           </div>
+          <section class="synthesis-library" id="synthesis-library" aria-labelledby="synthesis-library-title" hidden>
+            <h2 class="synthesis-library-title" id="synthesis-library-title">Comparisons</h2>
+            <ul class="library-list" id="synthesis-list"></ul>
+          </section>
         </div>
       </section>
 
@@ -115,6 +120,21 @@
             </section>
           </section>
         </div>
+      </section>
+
+      <section class="screen workflow-screen synthesis-screen" data-screen="synthesis" hidden aria-labelledby="synthesis-title">
+        <header class="synthesis-header">
+          <p class="eyebrow">Compare papers</p>
+          <h2 class="stage-title" id="synthesis-title" tabindex="-1"></h2>
+          <p class="workspace-context" id="synthesis-context"></p>
+          <p class="synthesis-question" id="synthesis-question" hidden></p>
+          <ol class="synthesis-steps" id="synthesis-steps" aria-label="Comparison steps"></ol>
+          <p class="synthesis-position" id="synthesis-position"></p>
+        </header>
+        <p class="synthesis-notice" id="synthesis-notice" role="status" hidden></p>
+        <div class="synthesis-stage" id="synthesis-stage"></div>
+        <div class="form-actions synthesis-actions"><button class="button button-quiet" type="button" data-action="synthesis-back">Back</button><button class="button button-primary" type="button" data-action="synthesis-next">Continue</button></div>
+        <p class="synthesis-leave"><button class="leave-workspace" type="button" data-action="leave-synthesis">Back to library</button></p>
       </section>
 
       <section class="screen confirmation-screen" data-screen="confirmation" hidden aria-labelledby="confirmation-title">

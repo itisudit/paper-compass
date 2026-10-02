@@ -1,0 +1,171 @@
+/* synthesis.css: Step 15. The cross-paper comparison screen (question, contributions, compare,
+   interpret, judge) and the "Comparisons" section of the Library. Reuses tokens, .field-group,
+   .button and .synthesis-link-as-quiet-underline styling from the rest of the app rather than
+   introducing a second visual language. */
+
+/* ---- Library: the Comparisons section ---- */
+
+.synthesis-library { margin-top: 2.5rem; }
+.synthesis-library-title {
+  margin: 0 0 0.9rem;
+  color: var(--muted-ink);
+  font: 700 0.72rem/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.synthesis-item-kind {
+  margin: 0 0 0.15rem;
+  color: var(--accent-dark);
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- Screen shell ---- */
+
+.synthesis-screen { padding-top: 4rem; }
+.synthesis-header { max-width: 44rem; }
+.synthesis-question {
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 2px solid var(--accent);
+  color: var(--muted-ink);
+  background: rgba(232, 241, 237, 0.4);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.synthesis-steps {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1.4rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.synthesis-step { display: contents; }
+.synthesis-step-button {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.synthesis-step-button:disabled { cursor: not-allowed; opacity: 0.5; }
+.synthesis-step-button.is-done { border-color: var(--accent); color: var(--accent-dark); background: rgba(56, 107, 101, 0.08); }
+.synthesis-step-button.is-current { border-color: var(--accent-dark); color: #fff; background: var(--accent-dark); }
+.synthesis-position { margin: 0.6rem 0 0; color: var(--muted-ink); font-size: 0.84rem; font-style: italic; }
+
+.synthesis-notice {
+  max-width: 44rem;
+  margin: 1.2rem 0 0;
+  padding: 0.6rem 0.9rem;
+  border-left: 2px solid var(--accent);
+  color: var(--accent-dark);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+}
+
+.synthesis-stage { max-width: 44rem; margin-top: 1.8rem; display: grid; gap: 1.6rem; }
+.synthesis-actions { max-width: 44rem; margin-top: 2rem; }
+.synthesis-leave { margin-top: 1.2rem; }
+.synthesis-error { margin: 0; color: var(--accent-dark); font-family: var(--font-sans); font-size: 0.85rem; }
+
+/* ---- Question stage: paper picker ---- */
+
+.synthesis-papers { margin: 0; padding: 0; border: 0; }
+.synthesis-papers legend { padding: 0; margin-bottom: 0.5rem; font-size: 1rem; }
+.synthesis-paper-list { display: grid; gap: 0.6rem; margin: 0.8rem 0 0; padding: 0; list-style: none; }
+.synthesis-paper-item { padding: 0.8rem 1rem; border: 1px solid var(--soft-line); border-radius: 0.2rem; background: rgba(255, 255, 255, 0.4); }
+.synthesis-paper-choice { display: flex; align-items: flex-start; gap: 0.75rem; cursor: pointer; }
+.synthesis-paper-choice input { width: auto; margin-top: 0.3rem; }
+.synthesis-paper-heading { display: grid; gap: 0.1rem; }
+.synthesis-paper-title { margin: 0; color: var(--ink); font-size: 1rem; line-height: 1.35; overflow-wrap: anywhere; }
+.synthesis-paper-byline { margin: 0; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.8rem; }
+.synthesis-count { margin: 0.6rem 0 0; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.82rem; }
+
+/* ---- Contributions stage: paper tabs + one card ---- */
+
+.synthesis-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.synthesis-tab {
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  color: var(--muted-ink);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+.synthesis-tab[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: rgba(56, 107, 101, 0.1); font-weight: 600; }
+
+.synthesis-card {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem 1.3rem;
+  border: 1px solid var(--soft-line);
+  border-radius: 0.2rem;
+  background: var(--panel);
+  min-width: 0;
+}
+.synthesis-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+
+.synthesis-link {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  color: var(--accent-dark);
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-decoration-color: rgba(40, 80, 76, 0.4);
+  text-underline-offset: 0.2rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.synthesis-link:hover { text-decoration-color: var(--accent-dark); }
+
+.synthesis-evidence { margin: 0; padding: 0; border: 0; }
+.synthesis-evidence legend { padding: 0; margin-bottom: 0.4rem; font-family: var(--font-sans); font-size: 0.85rem; color: var(--muted-ink); }
+.synthesis-evidence-list { display: grid; gap: 0.55rem; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.synthesis-evidence-item { padding: 0.6rem 0.75rem; border: 1px solid var(--soft-line); border-radius: 0.2rem; background: rgba(255, 255, 255, 0.4); }
+.synthesis-evidence-choice { display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; }
+.synthesis-evidence-choice input { width: auto; margin-top: 0.25rem; }
+.synthesis-evidence-quote { color: var(--ink); font-style: italic; font-size: 0.92rem; line-height: 1.45; }
+.synthesis-evidence-meta { display: block; margin-top: 0.2rem; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.76rem; }
+
+.synthesis-select { width: 100%; box-sizing: border-box; margin-top: 0.35rem; padding: 0.6rem 0.7rem; border: 1px solid var(--line); border-radius: 0.15rem; background: rgba(255, 255, 255, 0.58); font-size: 0.95rem; }
+
+/* ---- Compare stage: cards side by side on desktop, stacked on mobile ---- */
+
+.synthesis-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+.synthesis-label { margin: 0; color: var(--muted-ink); font-family: var(--font-sans); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.synthesis-claim { margin: 0; color: var(--ink); font-size: 0.95rem; line-height: 1.5; overflow-wrap: anywhere; }
+.synthesis-confidence { margin: 0; color: var(--accent-dark); font-family: var(--font-sans); font-size: 0.88rem; font-weight: 600; }
+.synthesis-empty { margin: 0; color: var(--muted-ink); font-style: italic; font-size: 0.9rem; }
+
+.synthesis-relationships { margin-top: 0.4rem; }
+.synthesis-relationship-list { display: grid; gap: 0.5rem; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.synthesis-relationship { padding: 0.6rem 0.8rem; border-left: 2px solid var(--line); font-family: var(--font-sans); font-size: 0.85rem; }
+.synthesis-relationship p { margin: 0; }
+.synthesis-relationship-note { margin-top: 0.2rem; color: var(--muted-ink); font-style: italic; }
+
+@media (max-width: 640px) {
+  .synthesis-screen { padding-top: 2.5rem; }
+  .synthesis-compare { grid-template-columns: 1fr; }
+  .synthesis-card-header { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
+}

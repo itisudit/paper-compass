@@ -1,6 +1,6 @@
-// Step 12/13/14 checks for persistence.js (the per-session codec and autosave engine), library.js
-// (the saved collection built on top of it), and relationships.js (reader-created links between two
-// library records). Run with `npm test` (Node 20+). No dependencies, no browser: localStorage is a
+// Step 12-15 checks for persistence.js (the per-session codec and autosave engine), library.js
+// (the saved collection built on top of it), relationships.js (reader-created links between two
+// library records), and synthesis.js (a reader's cross-paper comparison). Run with `npm test` (Node 20+). No dependencies, no browser: localStorage is a
 // small stub.
 import { test, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
@@ -12,8 +12,9 @@ import {
 } from "../js/persistence.js";
 import {
   LEGACY_SESSION_KEY, LIBRARY_KEY, LIBRARY_REJECTED_KEY, LIBRARY_VERSION, addRelationship,
-  createRecordId, deleteRecord, deleteRelationship, describeRecord, getRecord,
-  getRelationshipsForRecord, loadLibrary, sortRecords, touchOpened, upsertRecord,
+  createRecordId, createSynthesis, deleteRecord, deleteRelationship, deleteSynthesis, describePaperRemoval,
+  describeRecord, getRecord, getRelationshipsForRecord, getSynthesis, listSyntheses, loadLibrary,
+  setSynthesisContribution, sortRecords, touchOpened, updateSynthesis, upsertRecord,
 } from "../js/library.js";
 import { RELATIONSHIP_TYPES } from "../js/relationships.js";
 import {
@@ -652,4 +653,331 @@ test("unavailable storage never throws for any relationship operation", () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, "storage");
   assert.equal(deleteRelationship("anything"), false);
+});
+
+// ---------------------------------------------------------------------------
+// synthesis.js / library.js: Step 15 cross-paper synthesis
+// ---------------------------------------------------------------------------
+
+// A saved paper with real evidence items in its own reading session, as the app produces them.
+function paperWithEvidence(title, evidenceTexts = ["A key passage", "Another passage"]) {
+  const id = startReading("swim", { paper: { title } });
+  const evidenceIds = evidenceTexts.map((t, i) => addEvidence({ annotationId: null, text: t, pageNumber: i + 1 }).id);
+  upsertRecord(id, buildSnapshot());
+  resetAppState();
+  return { id, evidenceIds };
+}
+
+function threePapers() {
+  return { a: paperWithEvidence("Paper A"), b: paperWithEvidence("Paper B"), c: paperWithEvidence("Paper C", []) };
+}
+
+const QUESTION = "How does land tenure affect climate adaptation?";
+
+test("creating a synthesis stores the question, the papers, and one empty contribution per paper", () => {
+  const { a, b } = threePapers();
+  const result = createSynthesis({ question: `  ${QUESTION}  `, paperIds: [a.id, b.id] });
+  assert.equal(result.ok, true);
+  const s = result.synthesis;
+  assert.equal(s.question, QUESTION); // trimmed
+  assert.deepEqual(s.paperIds, [a.id, b.id]);
+  assert.deepEqual(s.contributions, [
+    { paperId: a.id, claim: "", evidenceIds: [], confidence: "" },
+    { paperId: b.id, claim: "", evidenceIds: [], confidence: "" },
+  ]);
+  assert.equal(s.convergence, ""); assert.equal(s.tensions, ""); assert.equal(s.gaps, "");
+  assert.equal(s.judgement, ""); assert.equal(s.confidence, ""); assert.equal(s.whatWouldChangeMyMind, "");
+  assert.ok(s.createdAt > 0 && s.updatedAt === s.createdAt);
+  assert.equal(listSyntheses().length, 1);
+});
+
+test("a synthesis needs a non-empty question", () => {
+  const { a, b } = threePapers();
+  for (const question of ["", "   ", undefined, null, 42]) {
+    const result = createSynthesis({ question, paperIds: [a.id, b.id] });
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, "question");
+  }
+  assert.equal(listSyntheses().length, 0);
+});
+
+test("a synthesis needs at least two papers, with no repeats", () => {
+  const { a } = threePapers();
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [] }).reason, "too-few-papers");
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [a.id] }).reason, "too-few-papers");
+  assert.equal(createSynthesis({ question: QUESTION }).reason, "too-few-papers");
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [a.id, a.id] }).reason, "duplicate-papers");
+  assert.equal(listSyntheses().length, 0);
+});
+
+test("only papers that exist in the library are accepted", () => {
+  const { a } = threePapers();
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [a.id, "not-a-paper"] }).reason, "invalid-record");
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [a.id, 7] }).reason, "invalid-record");
+  assert.equal(listSyntheses().length, 0);
+});
+
+test("a contribution can be added and then edited, one field at a time", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  let r = setSynthesisContribution(synthesis.id, { paperId: a.id, claim: "Secure tenure raises adoption." });
+  assert.equal(r.ok, true);
+  r = setSynthesisContribution(synthesis.id, { paperId: a.id, confidence: "high" });
+  assert.equal(r.ok, true);
+  r = setSynthesisContribution(synthesis.id, { paperId: a.id, claim: "Secure tenure raises adoption, in this sample." });
+  const contribution = getSynthesis(synthesis.id).contributions.find((c) => c.paperId === a.id);
+  assert.equal(contribution.claim, "Secure tenure raises adoption, in this sample.");
+  assert.equal(contribution.confidence, "high"); // the earlier confidence edit was not lost
+  const other = getSynthesis(synthesis.id).contributions.find((c) => c.paperId === b.id);
+  assert.equal(other.claim, ""); // paper B untouched
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: "someone-else", claim: "x" }).reason, "paper-not-in-synthesis");
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, claim: 5 }).reason, "invalid-text");
+});
+
+test("evidence from the paper itself can be attached to its contribution, and detached again", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  const attach = setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: [a.evidenceIds[0], a.evidenceIds[1], a.evidenceIds[0]] });
+  assert.equal(attach.ok, true);
+  assert.deepEqual(getSynthesis(synthesis.id).contributions[0].evidenceIds, [a.evidenceIds[0], a.evidenceIds[1]]); // no repeats
+  setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: [a.evidenceIds[1]] });
+  assert.deepEqual(getSynthesis(synthesis.id).contributions[0].evidenceIds, [a.evidenceIds[1]]);
+  // the paper's own evidence is still there, untouched: there is one evidence system, not two
+  assert.equal(getRecord(a.id).session.evidence.length, 2);
+});
+
+test("evidence that belongs to a different paper, or does not exist, is refused", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: [b.evidenceIds[0]] }).reason, "invalid-evidence");
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: [a.evidenceIds[0], b.evidenceIds[0]] }).reason, "invalid-evidence");
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: ["nope"] }).reason, "invalid-evidence");
+  assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: "not-an-array" }).reason, "invalid-evidence");
+  assert.deepEqual(getSynthesis(synthesis.id).contributions[0].evidenceIds, []); // nothing was attached by the refused calls
+});
+
+test("confidence must be low, medium, high, or not yet chosen", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  for (const level of ["low", "medium", "high", ""]) {
+    assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, confidence: level }).ok, true, level);
+    assert.equal(updateSynthesis(synthesis.id, { confidence: level }).ok, true, level);
+  }
+  for (const bad of ["extreme", "HIGH", 3, null, undefined]) {
+    assert.equal(setSynthesisContribution(synthesis.id, { paperId: a.id, confidence: bad }).reason, "invalid-confidence", String(bad));
+    assert.equal(updateSynthesis(synthesis.id, { confidence: bad }).reason, "invalid-confidence", String(bad));
+  }
+});
+
+test("convergence, tensions and gaps persist exactly as written, and may stay empty", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  updateSynthesis(synthesis.id, { convergence: "Both find tenure matters.\nSecond line.", tensions: "  Effect sizes differ.  " });
+  const saved = getSynthesis(synthesis.id);
+  assert.equal(saved.convergence, "Both find tenure matters.\nSecond line.");
+  assert.equal(saved.tensions, "  Effect sizes differ.  "); // the reader's text is not trimmed or rewritten
+  assert.equal(saved.gaps, ""); // an empty section is a legitimate outcome
+  assert.equal(updateSynthesis(synthesis.id, { gaps: null }).reason, "invalid-text");
+});
+
+test("judgement, confidence and what-would-change-my-mind persist", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  updateSynthesis(synthesis.id, { judgement: "Tenure matters, conditional on credit access.", confidence: "medium", whatWouldChangeMyMind: "A null result in a comparable sample." });
+  const saved = getSynthesis(synthesis.id);
+  assert.equal(saved.judgement, "Tenure matters, conditional on credit access.");
+  assert.equal(saved.confidence, "medium");
+  assert.equal(saved.whatWouldChangeMyMind, "A null result in a comparable sample.");
+  assert.equal(updateSynthesis(synthesis.id, { question: "  " }).reason, "question"); // the question can be edited but never emptied
+  assert.equal(getSynthesis(synthesis.id).question, QUESTION);
+  assert.equal(updateSynthesis("no-such-id", { judgement: "x" }).reason, "not-found");
+  assert.ok(saved.updatedAt >= saved.createdAt);
+});
+
+test("a whole synthesis restores exactly after a fresh load, and is stored in the library file", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  setSynthesisContribution(synthesis.id, { paperId: a.id, claim: "Claim A", evidenceIds: [a.evidenceIds[0]], confidence: "low" });
+  setSynthesisContribution(synthesis.id, { paperId: b.id, claim: "Claim B", evidenceIds: b.evidenceIds, confidence: "high" });
+  updateSynthesis(synthesis.id, { convergence: "C", tensions: "T", gaps: "G", judgement: "J", confidence: "high", whatWouldChangeMyMind: "W" });
+  const before = getSynthesis(synthesis.id);
+
+  const raw = JSON.parse(store.getItem(LIBRARY_KEY));
+  assert.equal(raw.version, LIBRARY_VERSION);
+  assert.equal(raw.syntheses.length, 1);
+  freshTab();
+  assert.deepEqual(getSynthesis(synthesis.id), before);
+  assert.deepEqual(listSyntheses().map((x) => x.id), [synthesis.id]);
+});
+
+test("switching papers and autosaving a reading does not disturb a synthesis", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  setSynthesisContribution(synthesis.id, { paperId: a.id, claim: "Claim A", evidenceIds: [a.evidenceIds[0]] });
+  const before = getSynthesis(synthesis.id);
+  // open paper A as the app does, edit it, and autosave
+  restoreSnapshot(getRecord(a.id));
+  appState.recordId = a.id;
+  appState.readingSession.stages.orient.note = "a new note";
+  upsertRecord(a.id, buildSnapshot());
+  assert.deepEqual(getSynthesis(synthesis.id), before);
+});
+
+test("malformed synthesis data is repaired or dropped without losing papers or other syntheses", () => {
+  const { a, b, c } = threePapers();
+  const good = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] }).synthesis;
+  setSynthesisContribution(good.id, { paperId: a.id, claim: "keep me", evidenceIds: [a.evidenceIds[0]] });
+  const library = JSON.parse(store.getItem(LIBRARY_KEY));
+  library.syntheses.push(
+    "not an object",
+    { id: "s-no-question", question: "  ", paperIds: [a.id, b.id] },
+    { id: "s-one-paper", question: "Q", paperIds: [a.id] },
+    { id: "s-ghost-paper", question: "Q", paperIds: [a.id, "ghost"] },
+    { question: "no id", paperIds: [a.id, b.id] },
+    { id: good.id, question: "duplicate id", paperIds: [a.id, b.id] },
+    {
+      id: "s-messy", question: "Messy but salvageable", paperIds: [a.id, b.id, a.id, 9],
+      contributions: [
+        { paperId: a.id, claim: 5, evidenceIds: [b.evidenceIds[0], a.evidenceIds[1], "gone", 7], confidence: "extreme" },
+        { paperId: "not-in-synthesis", claim: "stray" },
+        "junk",
+      ],
+      convergence: 12, judgement: "kept", confidence: "high", createdAt: "yesterday",
+    },
+  );
+  writeStorageJSON(LIBRARY_KEY, library);
+
+  const { status, records, syntheses } = loadLibrary();
+  assert.equal(status, "ok");
+  assert.equal(records.length, 3);
+  assert.deepEqual(syntheses.map((x) => x.id).sort(), [good.id, "s-messy"].sort());
+  const messy = syntheses.find((x) => x.id === "s-messy");
+  assert.deepEqual(messy.paperIds, [a.id, b.id]);
+  assert.equal(messy.contributions.length, 2);
+  assert.equal(messy.contributions[0].claim, "");           // wrong type -> empty
+  assert.equal(messy.contributions[0].confidence, "");      // invalid level -> unset
+  assert.deepEqual(messy.contributions[0].evidenceIds, [a.evidenceIds[1]]); // another paper's / unknown ids dropped
+  assert.equal(messy.convergence, "");
+  assert.equal(messy.judgement, "kept");
+  assert.ok(Number.isFinite(messy.createdAt));
+  assert.equal(syntheses.find((x) => x.id === good.id).question, QUESTION); // first of the duplicate ids wins
+  void c;
+  // a non-array syntheses value is treated as none
+  library.syntheses = { not: "an array" };
+  writeStorageJSON(LIBRARY_KEY, library);
+  assert.deepEqual(loadLibrary().syntheses, []);
+  assert.equal(loadLibrary().records.length, 3);
+});
+
+test("evidence the reader later removes from a paper drops out of the synthesis on the next load", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  setSynthesisContribution(synthesis.id, { paperId: a.id, evidenceIds: a.evidenceIds });
+  // the reader removes one evidence item from paper A's reading
+  restoreSnapshot(getRecord(a.id));
+  appState.recordId = a.id;
+  appState.readingSession.evidence = appState.readingSession.evidence.filter((e) => e.id !== a.evidenceIds[0]);
+  upsertRecord(a.id, buildSnapshot());
+  assert.deepEqual(getSynthesis(synthesis.id).contributions[0].evidenceIds, [a.evidenceIds[1]]);
+});
+
+test("old Step 14 libraries with no syntheses field still load, keep their relationships, and gain syntheses", () => {
+  const { a, b } = threePapers();
+  addRelationship({ fromRecordId: a.id, toRecordId: b.id, type: "supports", note: "kept" });
+  const library = JSON.parse(store.getItem(LIBRARY_KEY));
+  delete library.syntheses;
+  library.version = 2;
+  writeStorageJSON(LIBRARY_KEY, library);
+
+  const loaded = loadLibrary();
+  assert.equal(loaded.status, "ok");
+  assert.equal(loaded.records.length, 3);
+  assert.equal(loaded.relationships.length, 1);
+  assert.equal(loaded.relationships[0].note, "kept");
+  assert.deepEqual(loaded.syntheses, []);
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] }).ok, true);
+  const rewritten = JSON.parse(store.getItem(LIBRARY_KEY));
+  assert.equal(rewritten.version, LIBRARY_VERSION);
+  assert.equal(rewritten.relationships.length, 1); // Step 14 data survives the upgrade
+});
+
+test("deleting a synthesis removes only that synthesis", () => {
+  const { a, b, c } = threePapers();
+  const one = createSynthesis({ question: "Q one", paperIds: [a.id, b.id] }).synthesis;
+  const two = createSynthesis({ question: "Q two", paperIds: [b.id, c.id] }).synthesis;
+  addRelationship({ fromRecordId: a.id, toRecordId: b.id, type: "related" });
+  assert.equal(deleteSynthesis(one.id), true);
+  assert.equal(getSynthesis(one.id), null);
+  assert.equal(getSynthesis(two.id).question, "Q two");
+  assert.equal(loadLibrary().records.length, 3);        // papers untouched
+  assert.equal(loadLibrary().relationships.length, 1);  // relationships untouched
+  assert.equal(deleteSynthesis("no-such-id"), false);
+});
+
+test("deleting a paper takes it out of the syntheses that used it, and removes any left with fewer than two papers", () => {
+  const { a, b, c } = threePapers();
+  const three = createSynthesis({ question: "Three papers", paperIds: [a.id, b.id, c.id] }).synthesis;
+  const two = createSynthesis({ question: "Two papers", paperIds: [a.id, b.id] }).synthesis;
+  setSynthesisContribution(three.id, { paperId: a.id, claim: "A's claim" });
+  setSynthesisContribution(three.id, { paperId: b.id, claim: "B's claim", evidenceIds: [b.evidenceIds[0]] });
+  updateSynthesis(three.id, { judgement: "still my view" });
+
+  assert.deepEqual(describePaperRemoval(a.id), { involved: 2, removed: 1, shrunk: 1 });
+  assert.equal(deleteRecord(a.id), true);
+
+  assert.equal(getSynthesis(two.id), null); // would have had one paper left
+  const remaining = getSynthesis(three.id);
+  assert.deepEqual(remaining.paperIds, [b.id, c.id]);
+  assert.deepEqual(remaining.contributions.map((x) => x.paperId), [b.id, c.id]);
+  assert.equal(remaining.contributions[0].claim, "B's claim");
+  assert.deepEqual(remaining.contributions[0].evidenceIds, [b.evidenceIds[0]]);
+  assert.equal(remaining.judgement, "still my view"); // the reader's other work survives
+  // no synthesis anywhere refers to the deleted paper
+  for (const s of loadLibrary().syntheses) {
+    assert.equal(s.paperIds.includes(a.id), false);
+    assert.equal(s.contributions.some((x) => x.paperId === a.id), false);
+  }
+});
+
+test("deleting a paper leaves syntheses that never used it exactly as they were", () => {
+  const { a, b, c } = threePapers();
+  const d = paperWithEvidence("Paper D");
+  const untouched = createSynthesis({ question: "Unrelated", paperIds: [b.id, c.id] }).synthesis;
+  setSynthesisContribution(untouched.id, { paperId: b.id, claim: "B", evidenceIds: b.evidenceIds });
+  createSynthesis({ question: "Uses D", paperIds: [a.id, d.id] });
+  const before = getSynthesis(untouched.id);
+  assert.equal(deleteRecord(d.id), true);
+  assert.deepEqual(getSynthesis(untouched.id), before);
+  assert.equal(listSyntheses().length, 1);
+  assert.deepEqual(describePaperRemoval(d.id), { involved: 0, removed: 0, shrunk: 0 });
+});
+
+test("relationships and syntheses are independent: neither creates or changes the other", () => {
+  const { a, b } = threePapers();
+  createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  assert.deepEqual(loadLibrary().relationships, []); // creating a synthesis creates no relationship
+  addRelationship({ fromRecordId: a.id, toRecordId: b.id, type: "challenges" });
+  assert.equal(listSyntheses().length, 1);
+  assert.equal(getRelationshipsForRecord(a.id).length, 1);
+});
+
+test("unavailable storage never throws for any synthesis operation", () => {
+  delete globalThis.localStorage;
+  assert.deepEqual(listSyntheses(), []);
+  assert.equal(getSynthesis("x"), null);
+  assert.deepEqual(loadLibrary().syntheses, []);
+  assert.equal(createSynthesis({ question: QUESTION, paperIds: ["a", "b"] }).reason, "storage");
+  assert.equal(updateSynthesis("x", { judgement: "j" }).reason, "storage");
+  assert.equal(setSynthesisContribution("x", { paperId: "a", claim: "c" }).reason, "storage");
+  assert.equal(deleteSynthesis("x"), false);
+  assert.deepEqual(describePaperRemoval("x"), { involved: 0, removed: 0, shrunk: 0 });
+});
+
+test("a full or failing store reports a storage failure and keeps what was already saved", () => {
+  const { a, b } = threePapers();
+  const { synthesis } = createSynthesis({ question: QUESTION, paperIds: [a.id, b.id] });
+  store.failWrites = true;
+  assert.equal(updateSynthesis(synthesis.id, { judgement: "lost" }).reason, "storage");
+  store.failWrites = false;
+  assert.equal(getSynthesis(synthesis.id).judgement, "");
 });

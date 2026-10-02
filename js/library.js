@@ -15,7 +15,8 @@
 //     version: LIBRARY_VERSION,
 //     migratedLegacySession: boolean,  // true once the old Step 12 single-session key has been folded in
 //     records: [ { id, createdAt, lastOpened, ...session snapshot } ],
-//     relationships: [ { id, fromRecordId, toRecordId, type, note, createdAt, updatedAt } ]
+//     relationships: [ { id, fromRecordId, toRecordId, type, note, createdAt, updatedAt } ],
+//     syntheses: [ { id, question, paperIds, contributions, ..., createdAt, updatedAt } ]   // Step 15
 //   }
 // The "...session snapshot" part of each record is exactly what persistence.js's buildSnapshot() /
 // sanitizeSnapshot() produce (paper, readingIntention, initialInterpretation, selectedDepth, session,
@@ -31,6 +32,11 @@ import {
   removeRelationship as removeRelationshipPure, removeRelationshipsForRecord,
   sanitizeRelationships,
 } from "./relationships.js";
+import {
+  createSynthesis as createSynthesisPure, describePaperRemoval as describePaperRemovalPure,
+  removePaperFromSyntheses, removeSynthesis as removeSynthesisPure, sanitizeSyntheses,
+  setContribution as setContributionPure, updateSynthesis as updateSynthesisPure,
+} from "./synthesis.js";
 import { stageModules } from "./state.js";
 import { depthLabel } from "./depths.js";
 
@@ -40,18 +46,19 @@ export const LIBRARY_REJECTED_KEY = "paperCompass.library.rejected";
 // has one lying around gets it folded into the library exactly once.
 export const LEGACY_SESSION_KEY = "paperCompass.session";
 export const LEGACY_REJECTED_KEY = "paperCompass.session.rejected";
-// Step 13 shipped with only records, at version 1. Step 14 adds a relationships array alongside them,
-// at version 2 — an old file with no relationships key at all is accepted as version 1 and simply
-// has none (see sanitizeLibrary below), so nothing about a Step 13 library needs an explicit upgrade
-// step. A version this app has never produced (0, or newer than LIBRARY_VERSION) is not guessed at.
-export const LIBRARY_VERSION = 2;
-const KNOWN_LIBRARY_VERSIONS = [1, 2];
+// Step 13 shipped with only records, at version 1. Step 14 added a relationships array alongside
+// them (version 2), and Step 15 adds a syntheses array (version 3). A file missing either key is
+// accepted at its own version and simply has none (see sanitizeLibrary below), so no earlier library
+// needs an explicit upgrade step; it is rewritten at LIBRARY_VERSION the next time anything is saved.
+// A version this app has never produced (0, or newer than LIBRARY_VERSION) is not guessed at.
+export const LIBRARY_VERSION = 3;
+const KNOWN_LIBRARY_VERSIONS = [1, 2, 3];
 
 const isObject = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
 const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value);
 
 function emptyLibrary() {
-  return { version: LIBRARY_VERSION, migratedLegacySession: false, records: [], relationships: [] };
+  return { version: LIBRARY_VERSION, migratedLegacySession: false, records: [], relationships: [], syntheses: [] };
 }
 
 // A validated record: a sanitized session snapshot (see persistence.js) plus its library-only fields.
@@ -84,7 +91,10 @@ function sanitizeLibrary(raw) {
   // an empty array, which is the correct reading of "no relationships existed yet".
   const validIds = new Set(keptRecords.map((r) => r.id));
   const relationships = sanitizeRelationships(raw.relationships, validIds);
-  return { version: LIBRARY_VERSION, migratedLegacySession: raw.migratedLegacySession === true, records: keptRecords, relationships };
+  // Syntheses are checked against the records themselves, not just their ids, because a contribution's
+  // evidence has to belong to that paper's own reading session.
+  const syntheses = sanitizeSyntheses(raw.syntheses, keptRecords);
+  return { version: LIBRARY_VERSION, migratedLegacySession: raw.migratedLegacySession === true, records: keptRecords, relationships, syntheses };
 }
 
 // Most-recently-opened first. Exported separately so callers (and tests) can sort a record list
@@ -118,7 +128,7 @@ function migrateLegacySession(library) {
 // been quarantined; the reader still gets an empty, working library), "unavailable" (no localStorage).
 export function loadLibrary() {
   const found = readStorageJSON(LIBRARY_KEY);
-  if (found.status === "unavailable") return { status: "unavailable", records: [], relationships: [] };
+  if (found.status === "unavailable") return { status: "unavailable", records: [], relationships: [], syntheses: [] };
   let library = found.status === "ok" ? sanitizeLibrary(found.data) : null;
   const invalid = found.status === "invalid" || (found.status === "ok" && !library);
   if (invalid) quarantineItem(LIBRARY_KEY, LIBRARY_REJECTED_KEY);
@@ -128,7 +138,7 @@ export function loadLibrary() {
     library = migrated;
     writeStorageJSON(LIBRARY_KEY, library); // best effort; the in-memory result is returned regardless
   }
-  return { status: invalid ? "invalid" : found.status, records: library.records, relationships: library.relationships };
+  return { status: invalid ? "invalid" : found.status, records: library.records, relationships: library.relationships, syntheses: library.syntheses };
 }
 
 // The library, sorted for display.
@@ -171,8 +181,9 @@ export function touchOpened(id) {
   return upsertRecord(recordId, sessionData, { touchOpened: true });
 }
 
-// Removes one record, and — so no relationship can ever point at a paper that no longer exists —
-// every relationship that named it on either side. Returns true if a record was found and the
+// Removes one record, and — so nothing can ever point at a paper that no longer exists — every
+// relationship that named it on either side, and its place in every synthesis (a synthesis left with
+// fewer than two papers is removed; see synthesis.js). Returns true if a record was found and the
 // library was written back.
 export function deleteRecord(id) {
   const found = readStorageJSON(LIBRARY_KEY);
@@ -181,7 +192,8 @@ export function deleteRecord(id) {
   const records = library.records.filter((record) => record.id !== id);
   if (records.length === library.records.length) return false;
   const relationships = removeRelationshipsForRecord(library.relationships, id);
-  return writeStorageJSON(LIBRARY_KEY, { ...library, records, relationships });
+  const syntheses = removePaperFromSyntheses(library.syntheses, id);
+  return writeStorageJSON(LIBRARY_KEY, { ...library, records, relationships, syntheses });
 }
 
 // ---------- relationships ----------
@@ -221,13 +233,65 @@ export function deleteRelationship(id) {
   return writeStorageJSON(LIBRARY_KEY, { ...library, relationships });
 }
 
+// ---------- syntheses ----------
+// Same read-validate-modify-write shape as the relationship operations above; the rules themselves
+// live in synthesis.js. Every operation returns { ok: true, synthesis } or { ok: false, reason },
+// where reason is "storage" when the library could not be read or written (unavailable storage,
+// quota), otherwise one of the reasons synthesis.js documents.
+
+export function listSyntheses() {
+  return [...loadLibrary().syntheses].sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export function getSynthesis(id) {
+  return loadLibrary().syntheses.find((s) => s.id === id) ?? null;
+}
+
+// What deleting a paper would do to syntheses ({ involved, removed, shrunk }), for the confirmation.
+export function describePaperRemoval(recordId) {
+  return describePaperRemovalPure(loadLibrary().syntheses, recordId);
+}
+
+function mutateSyntheses(operation) {
+  const found = readStorageJSON(LIBRARY_KEY);
+  if (found.status === "unavailable") return { ok: false, reason: "storage" };
+  const library = (found.status === "ok" ? sanitizeLibrary(found.data) : null) || emptyLibrary();
+  const result = operation(library);
+  if (!result.ok) return result;
+  if (!writeStorageJSON(LIBRARY_KEY, { ...library, syntheses: result.syntheses })) return { ok: false, reason: "storage" };
+  return { ok: true, synthesis: result.synthesis };
+}
+
+export function createSynthesis(input) {
+  return mutateSyntheses((library) => createSynthesisPure(library.syntheses, library.records, input));
+}
+
+export function updateSynthesis(id, patch) {
+  return mutateSyntheses((library) => updateSynthesisPure(library.syntheses, library.records, id, patch));
+}
+
+export function setSynthesisContribution(id, patch) {
+  return mutateSyntheses((library) => setContributionPure(library.syntheses, library.records, id, patch));
+}
+
+// Removes one synthesis by id. Returns true if it existed and the library was written back.
+export function deleteSynthesis(id) {
+  const found = readStorageJSON(LIBRARY_KEY);
+  const library = found.status === "ok" ? sanitizeLibrary(found.data) : null;
+  if (!library) return false;
+  const syntheses = removeSynthesisPure(library.syntheses, id);
+  if (syntheses === library.syntheses) return false;
+  return writeStorageJSON(LIBRARY_KEY, { ...library, syntheses });
+}
+
 function startOfDay(ts) {
   const date = new Date(ts);
   date.setHours(0, 0, 0, 0);
   return date.getTime();
 }
 
-function formatLastOpened(ts) {
+// "Today", "Yesterday", "3 days ago", or a date — shared by "Last read" on papers and "Updated" on syntheses.
+export function formatRelativeDay(ts) {
   if (!isFiniteNumber(ts) || ts <= 0) return "";
   const days = Math.round((startOfDay(Date.now()) - startOfDay(ts)) / 86400000);
   if (days <= 0) return "Today";
@@ -256,6 +320,6 @@ export function describeRecord(record) {
     byline: [paper.authors, paper.journal].filter(Boolean).join(" · "),
     depthLabel: depthLabel(depth),
     status: judgement ? "Judgement recorded" : (stageLabel || "In progress"),
-    lastOpenedLabel: formatLastOpened(record.lastOpened),
+    lastOpenedLabel: formatRelativeDay(record.lastOpened),
   };
 }

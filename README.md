@@ -32,6 +32,10 @@ You can also **Relate** one paper to another from its Library card: choose the o
 
 Data lives only in this browser profile: there is no backend, no sync across devices, and clearing site data removes it. If saving is blocked or full, a reading continues in memory and a quiet notice appears. A single-reading save from an earlier version of Paper Compass is folded into the library automatically the first time the app loads.
 
+## Compare papers
+
+From the Library, **Compare papers** starts a cross-paper synthesis: a question, at least two of your library papers, and one step at a time through what each paper contributes (with evidence you already saved from it), a side-by-side read of those contributions, your own notes on convergence, tension and gaps, and a current judgement with what would change it. Nothing here is written for you or inferred automatically; every field is left empty until you fill it, and an empty field is a fine answer. Comparisons show in their own "Comparisons" section of the Library, never mixed in with papers. Deleting a paper removes it from any comparison that used it; a comparison left with fewer than two papers is removed rather than kept broken.
+
 ## Tests
 
 ```text

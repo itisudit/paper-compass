@@ -15,10 +15,13 @@ import {
   pdfMatches, persistenceHealthy, requestSave, restoreSnapshot,
 } from "./persistence.js";
 import {
-  addRelationship, createRecordId, deleteRecord, deleteRelationship, describeRecord, getRecord,
-  getRelationshipsForRecord, loadLibrary, touchOpened, upsertRecord,
+  addRelationship, createRecordId, deleteRecord, deleteRelationship, deleteSynthesis, describePaperRemoval,
+  describeRecord, formatRelativeDay, getRecord, getRelationshipsForRecord, listSyntheses, loadLibrary,
+  touchOpened, upsertRecord,
 } from "./library.js";
 import { RELATIONSHIP_LABELS, RELATIONSHIP_TYPES } from "./relationships.js";
+import { MIN_PAPERS } from "./synthesis.js";
+import { initSynthesisView } from "./synthesis-view.js";
 
 const screens = document.querySelectorAll("[data-screen]");
 const status = document.querySelector("#screen-status");
@@ -30,6 +33,9 @@ const startButton = document.querySelector('[data-action="start"]');
 const libraryNotice = document.querySelector("#library-notice");
 const libraryEmpty = document.querySelector("#library-empty");
 const libraryList = document.querySelector("#library-list");
+const compareButton = document.querySelector('[data-action="compare"]');
+const synthesisLibrary = document.querySelector("#synthesis-library");
+const synthesisList = document.querySelector("#synthesis-list");
 const saveNotice = document.querySelector("#save-notice");
 const reattach = document.querySelector("#pdf-reattach");
 const reattachButton = document.querySelector("#pdf-reattach-button");
@@ -128,6 +134,28 @@ function showScreen(screenName, announcement) {
   status.textContent = announcement;
 }
 
+// Step 15: the cross-paper comparison screen. It only ever talks back to app.js through these two
+// callbacks — it does not know how the Library or the reading workspace are shown.
+const synthesisView = initSynthesisView({
+  onExit(message) { showLibrary(message || "Paper Compass library."); },
+  onOpenPaper(paperId, page) { openRecord(paperId, page); },
+});
+
+function openSynthesis(id) {
+  if (!synthesisView.open(id)) { renderLibrary(); return; } // vanished since the list was drawn
+  showScreen("synthesis", "Comparing papers.");
+}
+
+compareButton.addEventListener("click", () => {
+  if (loadLibrary().records.length < MIN_PAPERS) {
+    libraryNotice.textContent = `Add at least ${MIN_PAPERS} papers to your library before comparing them.`;
+    libraryNotice.hidden = false;
+    return;
+  }
+  synthesisView.create();
+  showScreen("synthesis", "Comparing papers.");
+});
+
 // ---------- Library home ----------
 
 function renderLibrary() {
@@ -139,7 +167,69 @@ function renderLibrary() {
   const notice = libraryNotices[libraryStartupStatus] || "";
   libraryNotice.textContent = notice;
   libraryNotice.hidden = !notice;
+  renderSynthesisList();
 }
+
+// Step 15: comparisons are kept visually and structurally apart from papers — their own section,
+// their own quiet list — never rendered as if one more paper.
+function renderSynthesisList() {
+  const syntheses = listSyntheses();
+  synthesisLibrary.hidden = syntheses.length === 0;
+  synthesisList.replaceChildren(...syntheses.map(buildSynthesisCard));
+}
+
+function buildSynthesisCard(synthesis) {
+  const item = document.createElement("li");
+  item.className = "library-item synthesis-item";
+  item.dataset.synthesisId = synthesis.id;
+
+  const main = document.createElement("div");
+  main.className = "library-item-main";
+  const kind = document.createElement("p");
+  kind.className = "synthesis-item-kind";
+  kind.textContent = "Compare papers";
+  const question = document.createElement("p");
+  question.className = "library-item-title";
+  question.textContent = synthesis.question;
+  const meta = document.createElement("p");
+  meta.className = "library-item-meta";
+  meta.textContent = `${synthesis.paperIds.length} papers · Updated ${formatRelativeDay(synthesis.updatedAt)}`;
+  main.append(kind, question, meta);
+
+  const actions = document.createElement("div");
+  actions.className = "library-item-actions";
+  const openButton = document.createElement("button");
+  openButton.type = "button";
+  openButton.className = "button button-primary";
+  openButton.dataset.action = "open-synthesis";
+  openButton.textContent = "Open";
+  const deleteButton = document.createElement("button");
+  deleteButton.type = "button";
+  deleteButton.className = "library-item-delete";
+  deleteButton.dataset.action = "delete-synthesis";
+  deleteButton.textContent = "Delete";
+  deleteButton.setAttribute("aria-label", `Delete comparison: ${synthesis.question}`);
+  actions.append(openButton, deleteButton);
+
+  item.append(main, actions);
+  return item;
+}
+
+synthesisList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-action]");
+  const item = event.target.closest("[data-synthesis-id]");
+  if (!button || !item) return;
+  const id = item.dataset.synthesisId;
+  if (button.dataset.action === "open-synthesis") openSynthesis(id);
+  if (button.dataset.action === "delete-synthesis") {
+    const synthesis = findSynthesis(id);
+    if (window.confirm(`Delete this comparison? "${synthesis?.question || ""}" This cannot be undone.`)) {
+      deleteSynthesis(id);
+      renderLibrary();
+    }
+  }
+});
+function findSynthesis(id) { return listSyntheses().find((s) => s.id === id); }
 
 function buildLibraryCard(record, allRecords) {
   const info = describeRecord(record);
@@ -368,7 +458,12 @@ libraryList.addEventListener("click", (event) => {
 function deleteRecordWithConfirm(id) {
   const record = getRecord(id);
   const title = record ? describeRecord(record).title : "this paper";
-  if (!window.confirm(`Delete your reading of "${title}"? This cannot be undone.`)) return;
+  let message = `Delete your reading of "${title}"? This cannot be undone.`;
+  const affected = describePaperRemoval(id);
+  if (affected.removed > 0) {
+    message += ` This will also delete ${affected.removed} comparison${affected.removed === 1 ? "" : "s"} that would be left with fewer than ${MIN_PAPERS} papers.`;
+  }
+  if (!window.confirm(message)) return;
   deleteRecord(id);
   // Defensive: deletion is only reachable from the library screen, where nothing should be the
   // active in-memory reading — but if it somehow is, do not leave appState pointing at a ghost record.
@@ -448,9 +543,23 @@ function enterWorkspace(depth) {
   flushSave();
 }
 
+// A page to jump to once the PDF a reader is about to open has finished loading — set when Step 15's
+// synthesis screen sends the reader to a specific piece of evidence rather than just the paper.
+let pendingOpenPage = null;
+
 // Opens a saved reading from the library into the active workspace. The PDF file is not stored, so
 // the paper pane waits for the file to be chosen again; everything the reader wrote is back at once.
-function openRecord(id) {
+// `page`, if given, is where to land once the PDF is available (now, or after it is re-chosen).
+function openRecord(id, page) {
+  // Already the active reading (e.g. the synthesis screen sent the reader back to a paper they still
+  // have open) — switch screens in place rather than re-fetching it and losing the attached PDF.
+  if (appState.recordId === id && readingInProgress()) {
+    workspace.render();
+    showScreen("workspace", `${depthLabel(appState.selectedDepth)} reading.`);
+    if (Number.isInteger(page) && appState.paper.pdf) pdfViewer.goToPage(page);
+    workspace.focusStageTitle();
+    return;
+  }
   const record = getRecord(id);
   if (!record) { renderLibrary(); return; } // vanished since the list was drawn (e.g. deleted elsewhere)
   try {
@@ -464,6 +573,10 @@ function openRecord(id) {
   touchOpened(record.id);
   workspace.render();
   showScreen("workspace", `${depthLabel(appState.selectedDepth)} reading resumed.`);
+  // Opening a record always discards any in-memory PDF (restoreSnapshot's paper.pdf is always null —
+  // the file is never stored), so the reader is always asked to choose it again here, even if they
+  // had it open moments ago; pendingOpenPage is what reattachPdf lands on once they do.
+  pendingOpenPage = Number.isInteger(page) ? page : null;
   pdfViewer.load(null);
   refreshReattach();
   workspace.focusStageTitle();
@@ -483,7 +596,8 @@ async function reattachPdf(file) {
   reattach.hidden = true;
   await pdfViewer.load(file);
   if (appState.readingSession !== session) return;
-  pdfViewer.restoreView(session.view);
+  if (pendingOpenPage) { pdfViewer.goToPage(pendingOpenPage); pendingOpenPage = null; }
+  else pdfViewer.restoreView(session.view);
   if (!same) pdfViewer.setStatus("This file differs from the PDF you were reading. Your notes are kept, but highlights may not line up.");
   requestSave();
 }
